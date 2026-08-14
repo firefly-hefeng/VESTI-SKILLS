@@ -1,6 +1,6 @@
 ---
 name: vesti-handoff
-description: Produce a schema'd work handoff (交接包) when handing a task to another AI/session — context compaction, cross-agent relay ("把工作交接给…", "换个工具继续", "生成 handoff"), or before /compact. Encodes the verify-first rule: the receiving agent must re-verify the last verified result before trusting the handoff. V2 format aligns with VESTI-APP's RelayPackV2 schema.
+description: 'Produce a schema-based work handoff when transferring a task to another AI or session, compacting context, switching tools, generating a handoff, or preparing for /compact. Require the receiving agent to re-run the latest verification before trusting the handoff. The V2 format aligns with the VESTI-APP RelayPackV2 schema.'
 ---
 
 # VESTI Handoff V2 — 结构化工作交接（含接手先验证规则）

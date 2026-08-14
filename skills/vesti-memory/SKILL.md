@@ -1,9 +1,9 @@
 ---
 name: vesti-memory
-description: Recall past AI coding sessions (kimi-code / Claude Code / Codex / Cursor) captured by VESTI. Use when the user references earlier work ("继续上次…", "之前我们…"), when starting a session in a tracked project (auto-pull project context instead of asking for background), when merging work across projects/branches, or when current context is missing decisions made earlier. Provides automatic project context packs plus a three-layer progressive-disclosure memory: cheap index first, full content only when needed.
+description: 'Recall past AI coding sessions and file touches captured by VESTI. Use when the user references earlier work ("继续上次…", "之前我们…"), asks which local file or project contained prior work, starts a session in a tracked project, merges work across projects or branches, or needs a decision made in missing context. Provides project context, file-level lookup, and progressive retrieval from session index to selected full turns.'
 ---
 
-# VESTI Memory — 项目上下文自动获取 + 三层渐进披露检索
+# VESTI Memory — 项目上下文、文件定位与渐进检索
 
 VESTI 在本机持续采集你与各 AI coding agent 的历史会话（含工具调用、子代理、文件改动），并以只读 MCP server 暴露检索接口。
 
@@ -17,6 +17,13 @@ VESTI 在本机持续采集你与各 AI coding agent 的历史会话（含工具
   - 路径出现在 `unmatched_paths` = 该项目未被 VESTI 跟踪（hints 里附已知项目列表），此后按无记忆处理，不要再反复重试。
   - 拿到上下文包后仍有缺口，再走下面的三层检索。
 
+## 需要定位文件时：先查文件级记忆
+
+- 用户问“上次 OAuth 改在哪个文件”“填写之前做过的 BP”或需要把历史工作落到当前代码时，先调用 **`vesti_search_files(query, topK=10)`**。
+- 把返回的 `path`、`projects`、`last_touched` 和 backing sessions 当作历史证据；先确认项目范围，再用当前 Agent 的文件系统工具检查路径是否仍存在并读取最新内容。
+- 该工具搜索的是 VESTI 记录的历史文件触碰，不搜索当前磁盘内容。用户问“当前目录里有没有某文件”时，直接使用文件系统搜索。
+- 工具列表中没有 `vesti_search_files` 时，说明 MCP 版本较旧；退回 `vesti_search(文件名/主题)` → `vesti_timeline` → `vesti_get_turns`，并把推断出的路径标为待核实。
+
 ## 需要历史细节时：三层渐进披露
 
 按以下顺序使用（每层便宜一个数量级），**不要跳过层级直接拉全文**：
@@ -26,7 +33,8 @@ VESTI 在本机持续采集你与各 AI coding agent 的历史会话（含工具
    - `confidence:"low"` 的结果只作线索，**不要当作事实**；换关键词重试或明确告诉用户"记忆中没有找到"。
 2. **vesti_timeline(session_id, around_turn?)** — 单会话 turn 大纲（序号/时间/用户意图一行/工具数/token）。用它定位需要哪几轮，不要盲取。
 3. **vesti_get_turns(session_id, turn_ids | range, max_chars=8000)** — 取指定轮完整内容（用户/助手原文 + 工具调用摘要）。只在确定范围后调用；`truncated:true` 时按 seq 继续取。
-4. **vesti_project_brief(project)** — 按项目名模糊匹配的 L0 状态卡 + L2 简报。不知道项目路径、只知道名字时用；知道路径优先用 `vesti_get_project_context`。
+
+只知道项目名而不知道路径时使用 **`vesti_project_brief(project)`**；知道路径时优先使用 `vesti_get_project_context`。
 
 ## 交接前
 
@@ -35,7 +43,7 @@ VESTI 在本机持续采集你与各 AI coding agent 的历史会话（含工具
 
 ## 工作守则
 
-- **续作场景**：`vesti_get_project_context(当前目录)` → 缺口处 `vesti_search` → 按需 `vesti_get_turns`。引用记忆内容时给出来源（会话标题/时间），让用户可回查。
+- **续作场景**：`vesti_get_project_context(当前目录)` → 文件问题用 `vesti_search_files`，决策问题用 `vesti_search` → 按需 `vesti_timeline` / `vesti_get_turns`。引用记忆内容时给出来源（会话标题/时间），让用户可回查。
 - **时效性**：记忆条目带时间；同一事实新旧冲突时以**更近的会话**为准，并提醒用户发生过变更。
 - **边界**：库是只读的；查不到就如实说查不到，不要编造"记忆中"的内容。
 - 未注册 MCP 时提示用户按 README 注册（stdio，Node ≥23.4，或 22.x 加 `--experimental-sqlite`；也可在 VESTI app 设置页"连接到 Agent"一键注册）。
