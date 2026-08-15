@@ -74,6 +74,15 @@ corepack pnpm build
 
 包的 API、边界和独立开发命令见[核心包 README](packages/vesti-search-files-core/README.md)。
 
+### 记忆核心与 MCP server
+
+另外两个包把 VESTI 的底层记忆机制整体抽成了可独立使用的模块：
+
+- [`@vesti/memory-core`](packages/vesti-memory-core/README.md) — 记忆存储与整理核心：SQLite schema 与 15 个迁移、会话/消息存储、L0–L2 项目记忆（状态卡 / 活跃文件时间线 / 维护式简报）、记忆空间（deposit / dream / note）、会话 digest 管线与三层检索原语（FTS5 召回、向量检索、语义边）。LLM 与 embedding 都是注入接口，包本身无网络与模型 SDK 依赖，仅依赖 better-sqlite3。
+- [`@vesti/mcp`](packages/vesti-mcp/README.md) — 把 VESTI 记忆库暴露给任意 MCP 客户端的 server（即 skills 里 vesti-mcp 的独立发布形态）：`vesti_search` / `vesti_timeline` / `vesti_get_turns` / `vesti_get_project_context` / `vesti_search_files` / `vesti_memory_*` 等 9 个工具，除 digest 访问计数外严格只读。
+
+可运行的端到端示例见 [`examples/`](examples/README.md)（建库 → 写入 → digest → 召回）。
+
 ### vesti-handoff：交接包即契约
 
 ```json
@@ -98,8 +107,11 @@ VESTI-SKILLS/
 ├── skills/
 │   ├── vesti-memory/              # 历史会话与文件记忆召回
 │   └── vesti-handoff/             # 跨会话、跨 Agent 结构化交接
-└── packages/
-    └── vesti-search-files-core/   # 可复用的纯 TypeScript 文件定位核心
+├── packages/
+│   ├── vesti-search-files-core/   # 可复用的纯 TypeScript 文件定位核心
+│   ├── vesti-memory-core/         # 记忆存储、digest 管线与检索核心
+│   └── vesti-mcp/                 # 暴露 VESTI 记忆库的 MCP server
+└── examples/                      # 核心库可运行示例
 ```
 
 ## 安装
