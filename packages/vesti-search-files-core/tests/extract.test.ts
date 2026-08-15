@@ -32,12 +32,21 @@ describe('query parsing', () => {
     expect(parseKeyFiles('not-json')).toEqual([]);
   });
 
-  it('deduplicates and caps name tokens', () => {
+  it('deduplicates useful name tokens without discarding later rare terms', () => {
     expect(queryTokens('oauth oauth auth.ts login callback extra')).toEqual([
       'oauth',
       'auth.ts',
       'login',
       'callback',
+      'extra',
+    ]);
+  });
+
+  it('filters short English stop words but preserves two-character CJK terms', () => {
+    expect(queryTokens('采集 增量 in skills project files')).toEqual([
+      '采集',
+      '增量',
+      'skills',
     ]);
   });
 });

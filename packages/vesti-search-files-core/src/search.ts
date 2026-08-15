@@ -81,7 +81,12 @@ export function searchFiles(
     if (meta.recallScore) entry.recallScore = Math.max(entry.recallScore, meta.recallScore);
   };
 
-  for (const hit of dataSource.recall(query, SESSION_RECALL_LIMIT)) {
+  const recallResult = dataSource.recall(query, SESSION_RECALL_LIMIT);
+  const recalledSessions = Array.isArray(recallResult)
+    ? recallResult
+    : recallResult.candidates;
+
+  for (const hit of recalledSessions) {
     const session = dataSource.getSession(hit.sessionId);
     if (!session) continue;
     const meta = {

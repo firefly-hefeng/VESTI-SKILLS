@@ -1,0 +1,230 @@
+{
+  "dryRun": false,
+  "schedule": {
+    "runs": 288,
+    "completeBlocks": 72,
+    "arms": {
+      "old-skill-off": 72,
+      "old-skill-on": 72,
+      "new-skill-off": 72,
+      "new-skill-on": 72
+    }
+  },
+  "arms": [
+    {
+      "arm": "old-skill-off",
+      "n": 72,
+      "completed": 72,
+      "errors": 0,
+      "taskSuccess": 0.8472222222222222,
+      "hit3": 0.8666666666666667,
+      "recall5": 0.8666666666666667,
+      "allTargets5": 0.8666666666666667,
+      "projectAccuracy": 0.8666666666666667,
+      "evidenceAccuracy": 0.8666666666666667,
+      "historicalAccuracy": 0.8666666666666667,
+      "staleSafety": 1,
+      "returnedFilePrecision": 0.8666666666666667,
+      "unsupportedReturnRate": 0,
+      "negativeFalsePositive": 0.25,
+      "toolCallsMedian": 7,
+      "durationMsMedian": 27655.59545,
+      "inputTokensMedian": 78693.5,
+      "cachedInputTokensMedian": 58368,
+      "outputTokensMedian": 552.5
+    },
+    {
+      "arm": "old-skill-on",
+      "n": 72,
+      "completed": 72,
+      "errors": 0,
+      "taskSuccess": 0.8055555555555556,
+      "hit3": 0.85,
+      "recall5": 0.85,
+      "allTargets5": 0.85,
+      "projectAccuracy": 0.85,
+      "evidenceAccuracy": 0.85,
+      "historicalAccuracy": 0.85,
+      "staleSafety": 1,
+      "returnedFilePrecision": 0.85,
+      "unsupportedReturnRate": 0,
+      "negativeFalsePositive": 0.4166666666666667,
+      "toolCallsMedian": 6,
+      "durationMsMedian": 29651.3487,
+      "inputTokensMedian": 90095,
+      "cachedInputTokensMedian": 74496,
+      "outputTokensMedian": 645
+    },
+    {
+      "arm": "new-skill-off",
+      "n": 72,
+      "completed": 72,
+      "errors": 0,
+      "taskSuccess": 0.9583333333333334,
+      "hit3": 1,
+      "recall5": 1,
+      "allTargets5": 1,
+      "projectAccuracy": 1,
+      "evidenceAccuracy": 1,
+      "historicalAccuracy": 1,
+      "staleSafety": 1,
+      "returnedFilePrecision": 1,
+      "unsupportedReturnRate": 0,
+      "negativeFalsePositive": 0.25,
+      "toolCallsMedian": 5,
+      "durationMsMedian": 24988.3455,
+      "inputTokensMedian": 74303,
+      "cachedInputTokensMedian": 54784,
+      "outputTokensMedian": 480
+    },
+    {
+      "arm": "new-skill-on",
+      "n": 72,
+      "completed": 72,
+      "errors": 0,
+      "taskSuccess": 0.9305555555555556,
+      "hit3": 0.9666666666666667,
+      "recall5": 0.9666666666666667,
+      "allTargets5": 0.9666666666666667,
+      "projectAccuracy": 0.9666666666666667,
+      "evidenceAccuracy": 0.9666666666666667,
+      "historicalAccuracy": 0.9666666666666667,
+      "staleSafety": 1,
+      "returnedFilePrecision": 0.9666666666666667,
+      "unsupportedReturnRate": 0.03333333333333333,
+      "negativeFalsePositive": 0.25,
+      "toolCallsMedian": 4,
+      "durationMsMedian": 26868.16075,
+      "inputTokensMedian": 67069,
+      "cachedInputTokensMedian": 52224,
+      "outputTokensMedian": 549.5
+    }
+  ],
+  "effects": {
+    "bootstrap": {
+      "method": "percentile concept-cluster bootstrap",
+      "clusterUnit": "conceptId",
+      "confidenceLevel": 0.95,
+      "iterations": 10000,
+      "seed": 1828226087
+    },
+    "itt": {
+      "definition": "Intent-to-treat paired estimate: every four-arm scheduled block is retained and failed/non-numeric runs score taskSuccess=0.",
+      "scheduledBlocks": 72,
+      "armCompleteBlocks": 72,
+      "pairedBlocks": 72,
+      "excludedBlocks": 0,
+      "conceptClusters": 12,
+      "contrasts": {
+        "toolEffectSkillOff": {
+          "estimate": 0.1111111111111111,
+          "ci95": {
+            "lower": 0.06944444444444445,
+            "upper": 0.1527777777777778
+          }
+        },
+        "toolEffectSkillOn": {
+          "estimate": 0.125,
+          "ci95": {
+            "lower": 0.05555555555555555,
+            "upper": 0.19444444444444445
+          }
+        },
+        "skillEffectOldTool": {
+          "estimate": -0.041666666666666664,
+          "ci95": {
+            "lower": -0.08333333333333333,
+            "upper": 0
+          }
+        },
+        "skillEffectNewTool": {
+          "estimate": -0.027777777777777776,
+          "ci95": {
+            "lower": -0.125,
+            "upper": 0.041666666666666664
+          }
+        },
+        "marginalToolEffect": {
+          "estimate": 0.11805555555555555,
+          "ci95": {
+            "lower": 0.0763888888888889,
+            "upper": 0.1527777777777778
+          }
+        },
+        "marginalSkillEffect": {
+          "estimate": -0.034722222222222224,
+          "ci95": {
+            "lower": -0.09722222222222222,
+            "upper": 0
+          }
+        },
+        "interaction": {
+          "estimate": 0.013888888888888888,
+          "ci95": {
+            "lower": -0.06944444444444445,
+            "upper": 0.09722222222222222
+          }
+        }
+      }
+    },
+    "cleanCompletedPaired": {
+      "definition": "Clean-completed paired estimate: includes only blocks where all four arms have status=completed, no error, and numeric taskSuccess.",
+      "scheduledBlocks": 72,
+      "armCompleteBlocks": 72,
+      "pairedBlocks": 72,
+      "excludedBlocks": 0,
+      "conceptClusters": 12,
+      "contrasts": {
+        "toolEffectSkillOff": {
+          "estimate": 0.1111111111111111,
+          "ci95": {
+            "lower": 0.06944444444444445,
+            "upper": 0.1527777777777778
+          }
+        },
+        "toolEffectSkillOn": {
+          "estimate": 0.125,
+          "ci95": {
+            "lower": 0.05555555555555555,
+            "upper": 0.19444444444444445
+          }
+        },
+        "skillEffectOldTool": {
+          "estimate": -0.041666666666666664,
+          "ci95": {
+            "lower": -0.08333333333333333,
+            "upper": 0
+          }
+        },
+        "skillEffectNewTool": {
+          "estimate": -0.027777777777777776,
+          "ci95": {
+            "lower": -0.125,
+            "upper": 0.041666666666666664
+          }
+        },
+        "marginalToolEffect": {
+          "estimate": 0.11805555555555555,
+          "ci95": {
+            "lower": 0.0763888888888889,
+            "upper": 0.1527777777777778
+          }
+        },
+        "marginalSkillEffect": {
+          "estimate": -0.034722222222222224,
+          "ci95": {
+            "lower": -0.09722222222222222,
+            "upper": 0
+          }
+        },
+        "interaction": {
+          "estimate": 0.013888888888888888,
+          "ci95": {
+            "lower": -0.06944444444444445,
+            "upper": 0.09722222222222222
+          }
+        }
+      }
+    }
+  }
+}

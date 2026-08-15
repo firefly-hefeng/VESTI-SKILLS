@@ -1,0 +1,11 @@
+case_id,arm,query,expected,ranked_paths,hit_at_1,hit_at_3,recall_at_3,reciprocal_rank,negative_false_positive,project_accuracy,evidence_accuracy,tool_calls,context_chars,latency_median_us,latency_p95_us
+"P1-semantic","baseline","oauth redirect","apps/desktop/src/auth/oauthCallback.ts","apps/desktop/src/auth/oauthCallback.ts","1","1","1","1","","1","1","3","548","7.7","18.1"
+"P1-semantic","treatment","oauth redirect","apps/desktop/src/auth/oauthCallback.ts","apps/desktop/src/auth/oauthCallback.ts","1","1","1","1","","1","1","1","332","16.1","34.6"
+"P2-filename-only","baseline","billingRules.ts","src/membership/billingRules.ts","","0","0","0","0","","0","0","1","2","2.5","3"
+"P2-filename-only","treatment","billingRules.ts","src/membership/billingRules.ts","src/membership/billingRules.ts","1","1","1","1","","1","1","1","309","11.2","14"
+"P3-cross-project","baseline","token accounting","packages/capture-core/src/adapters/codex/parser.ts|packages/core/src/adapters/codex/parser.ts","packages/core/src/adapters/codex/parser.ts|packages/capture-core/src/adapters/codex/parser.ts","1","1","1","1","","1","1","5","1103","8.8","16.2"
+"P3-cross-project","treatment","token accounting","packages/capture-core/src/adapters/codex/parser.ts|packages/core/src/adapters/codex/parser.ts","src/ui/dashboard/TokenChart.tsx|packages/core/src/adapters/codex/parser.ts|packages/capture-core/src/adapters/codex/parser.ts","0","1","1","0.5","","1","1","1","908","20.6","89.4"
+"P4-stale-history","baseline","legacy obsidian export","src/export/legacyObsidianExporter.ts","src/export/legacyObsidianExporter.ts","1","1","1","1","","1","1","3","533","6.6","7.1"
+"P4-stale-history","treatment","legacy obsidian export","src/export/legacyObsidianExporter.ts","src/export/legacyObsidianExporter.ts","1","1","1","1","","1","1","1","343","15","16.8"
+"P5-negative","baseline","stripe invoice webhook","","","","","","0","0","","","1","2","3.3","3.7"
+"P5-negative","treatment","stripe invoice webhook","","","","","","0","0","","","1","57","8.8","33.4"

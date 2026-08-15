@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "status": "completed",
+  "dryRun": false,
+  "datasetId": "vesti-file-search-large-v2",
+  "datasetSeed": 221250144,
+  "datasetIntegrity": {
+    "datasetId": "vesti-file-search-large-v2",
+    "seed": 221250144,
+    "projects": 8,
+    "sessions": 146,
+    "cases": 72,
+    "categories": {
+      "semantic-single": 12,
+      "filename-only": 12,
+      "multi-file": 12,
+      "cross-project": 12,
+      "stale-path": 12,
+      "negative": 12
+    },
+    "splits": {
+      "dev": 12,
+      "test": 48,
+      "provisional-holdout": 12
+    }
+  },
+  "corpusSha256": "fd79dc8550fad9c4ff186ec5d0a5a1841322bde5388d2f8d6d31071075794a63",
+  "split": "all",
+  "maxCases": null,
+  "selectedCaseIds": [
+    "negative-09",
+    "semantic-06",
+    "semantic-11",
+    "negative-03",
+    "negative-07",
+    "multi-04",
+    "stale-02",
+    "negative-08",
+    "cross-05",
+    "multi-08",
+    "semantic-08",
+    "negative-12",
+    "negative-10",
+    "stale-04",
+    "stale-09",
+    "cross-12",
+    "stale-03",
+    "semantic-01",
+    "multi-02",
+    "negative-04",
+    "cross-08",
+    "filename-11",
+    "stale-10",
+    "filename-08",
+    "multi-10",
+    "cross-01",
+    "filename-02",
+    "cross-10",
+    "negative-05",
+    "multi-09",
+    "negative-06",
+    "semantic-04",
+    "stale-08",
+    "multi-03",
+    "stale-01",
+    "semantic-12",
+    "semantic-07",
+    "negative-01",
+    "semantic-03",
+    "filename-12",
+    "cross-06",
+    "stale-05",
+    "semantic-09",
+    "filename-06",
+    "negative-02",
+    "cross-09",
+    "semantic-05",
+    "multi-01",
+    "multi-06",
+    "filename-04",
+    "multi-11",
+    "cross-07",
+    "stale-07",
+    "cross-11",
+    "filename-10",
+    "stale-06",
+    "multi-07",
+    "filename-09",
+    "cross-03",
+    "stale-12",
+    "semantic-10",
+    "filename-07",
+    "filename-01",
+    "multi-12",
+    "negative-11",
+    "stale-11",
+    "cross-04",
+    "filename-05",
+    "multi-05",
+    "filename-03",
+    "semantic-02",
+    "cross-02"
+  ],
+  "caseCount": 72,
+  "repeats": 1,
+  "runCount": 288,
+  "concurrency": 2,
+  "scheduleSha256": "00746e5e610028c8e945c74103d3720a2db88d1e081fbe1801df4912e187f2d4",
+  "model": "gpt-5.6-luna",
+  "codexVersion": "codex-cli 0.144.6",
+  "codexCommand": [
+    "<NODE_EXECUTABLE>",
+    "<CODEX_CLI_ENTRY>"
+  ],
+  "timeoutMs": 180000,
+  "fixtureSha256": "a8943c8ff6b340f3b05d5947b55a0a7ce90b0eae7a42561135e43ef27142a6c6",
+  "fixtureCounts": {
+    "sessions": 146,
+    "turns": 146,
+    "messages": 292,
+    "tools": 192,
+    "digests": 146
+  },
+  "mcpEntry": "<VESTI_APP_ROOT>/packages/vesti-mcp/dist/index.js",
+  "mcpArtifactSha256": "0e67c5c13c4ca48b680a06756b49f47ed6df96575cdef6e61eebfd200d25ca2f",
+  "mcpArtifactFiles": [
+    {
+      "path": "chunk-S5NTTK7O.js",
+      "sha256": "fc7fa7574e959fad8e9d3cf116e1ed33d1f85def71ce57eedd443ffbb107ed29"
+    },
+    {
+      "path": "chunk-S5NTTK7O.js.map",
+      "sha256": "b06c71cd0dab9ffc5251fa61619c78f52ae52ca78745cac2e10bfe3a7e63662c"
+    },
+    {
+      "path": "cli.d.ts",
+      "sha256": "6caa0b04bdc10582a3729dae9244f21c5bec0b9ffe7e2a84999c2f868f5dd9be"
+    },
+    {
+      "path": "cli.js",
+      "sha256": "4379a6a131e733612a85cf1aca0be1a198b958c1969bff4a0e4a23a387a416f6"
+    },
+    {
+      "path": "cli.js.map",
+      "sha256": "8c91fb42eef964246704b95c4291db3268997226d0fd494d8a32f29759eb94f0"
+    },
+    {
+      "path": "index.d.ts",
+      "sha256": "57955edeb11f92ed8c37a2f0a92700699c1fafbb5ee45c5b91a23ded4135cb8f"
+    },
+    {
+      "path": "index.js",
+      "sha256": "35e651d119435655e52e391556fbc84b50a4c048768565c8d08b343e24fd585c"
+    },
+    {
+      "path": "index.js.map",
+      "sha256": "cba81f7ad4d5b1b629bf43823f1082e73a10d0c3114c937515e7f8c1047629b3"
+    }
+  ],
+  "benchmarkMcpServerPath": "<VESTI_SKILLS_ROOT>/benchmarks/file-search/agent-mcp-server.mjs",
+  "benchmarkMcpServerSha256": "f22ae89cdbef84bad5158a3816c63502fa803248bd2c309f50bb1bd52735e45b",
+  "benchmarkServerInstructionsSha256": "94c93a7de16e54c51446a7ad33296cfef2f7e6f630a0fe05dd9aaa6b7793268a",
+  "toolSets": {
+    "old": [
+      "vesti_search",
+      "vesti_timeline",
+      "vesti_get_turns"
+    ],
+    "new": [
+      "vesti_search",
+      "vesti_timeline",
+      "vesti_get_turns",
+      "vesti_search_files"
+    ]
+  },
+  "skillPath": "<VESTI_SKILLS_ROOT>/skills/vesti-memory/SKILL.md",
+  "skillSha256": "9ea2fbb084cd5191709c9cb852d36a7d664cae1055cf464e3db4825ec86066a8",
+  "neutralInstructionsSha256": "486d57a4c7ee51a685e50dd71644b37f31a3b2ecb6b3eb2af6a4bd723ea0db2f",
+  "outputSchemaPath": "<VESTI_SKILLS_ROOT>/benchmarks/file-search/agent-output-schema.json",
+  "outputSchemaSha256": "54e7e9a0c4b6ae038cc90117006cdb6e133fc69320a1cd86f83eb9ffe0e038f9",
+  "runnerSha256": "7041a94cf589ff603bece0cf14e42a4c4d10da0232b8b69f7c4e1db3e2447710",
+  "startedAt": "2026-08-15T07:16:03.655Z",
+  "completedAt": "2026-08-15T08:25:34.931Z",
+  "cleanupWarnings": []
+}

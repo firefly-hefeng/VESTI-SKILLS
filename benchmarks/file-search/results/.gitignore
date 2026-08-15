@@ -1,0 +1,14 @@
+*
+!.gitignore
+!CANONICAL.md
+!pilot-report.md
+!pilot-results.csv
+!pilot-results.json
+!baseline-trigram-before-v2/
+!baseline-trigram-before-v2/**
+!full-v2-release-limit12/
+!full-v2-release-limit12/**
+!full-v2-release-limit30/
+!full-v2-release-limit30/**
+!agent-factorial-v2-final-limit12/
+!agent-factorial-v2-final-limit12/**

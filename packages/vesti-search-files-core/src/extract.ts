@@ -62,11 +62,28 @@ export function parseKeyFiles(text: string | null | undefined): string[] {
   }
 }
 
+const QUERY_STOP_WORDS = new Set([
+  'a', 'an', 'and', 'as', 'at', 'be', 'by', 'for', 'from', 'in', 'into',
+  'is', 'it', 'of', 'on', 'or', 'the', 'to', 'via', 'with',
+  'file', 'files', 'path', 'paths', 'location', 'project', 'projects',
+  'repo', 'repository', 'where', 'find',
+]);
+
+const charLength = (value: string): number => [...value].length;
+const hasCjk = (value: string): boolean =>
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(value);
+
+/**
+ * Tokens useful for matching file names. Project hints must be removed before
+ * calling this helper. Two-character CJK terms remain valid, while short
+ * English function words such as `in` are discarded.
+ */
 export function queryTokens(query: string): string[] {
-  return [...new Set(
-    query
-      .split(/[\s,，、/\\:：*?"'<>|]+/)
-      .map(token => token.replace(/[%_]/g, '').trim())
-      .filter(token => token.length >= 2),
-  )].slice(0, 4);
+  const raw = query.match(/[\p{L}\p{N}_@+.-]+/gu) ?? [];
+  const tokens = raw
+    .map(token => token.replace(/^[._+-]+|[._+-]+$/g, '').toLowerCase())
+    .filter(Boolean)
+    .filter(token => !QUERY_STOP_WORDS.has(token))
+    .filter(token => token.includes('.') || (hasCjk(token) ? charLength(token) >= 2 : charLength(token) >= 3));
+  return [...new Set(tokens)].slice(0, 12);
 }

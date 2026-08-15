@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "build": "pnpm -r --if-present build",
+    "eval:file-search-demo": "pnpm --filter @vesti/search-files-core build && node benchmarks/file-search/run-demo.mjs",
+    "eval:file-search-large": "pnpm --filter @vesti/search-files-core build && pnpm --dir ../VESTI-APP --filter @vesti/vesti-mcp build && pnpm --filter @vesti/file-search-benchmark large",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test"
   },
