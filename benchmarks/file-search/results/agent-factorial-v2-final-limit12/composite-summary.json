@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "analysis": "post-hoc integrated-method comparison",
+  "baselineArm": "old-skill-off",
+  "treatmentArm": "new-skill-on",
+  "bootstrap": {
+    "method": "percentile concept-cluster bootstrap",
+    "clusterUnit": "conceptId",
+    "iterations": 10000,
+    "seed": 1828226087
+  },
+  "scopes": [
+    {
+      "id": "overall",
+      "label": "All cases",
+      "baseline": {
+        "successes": 61,
+        "n": 72,
+        "rate": 0.8472222222222222
+      },
+      "treatment": {
+        "successes": 67,
+        "n": 72,
+        "rate": 0.9305555555555556
+      },
+      "paired": {
+        "n": 72,
+        "excludedPairs": 0,
+        "excludedCaseIds": [],
+        "delta": 0.08333333333333333,
+        "ci95": [
+          -0.013888888888888888,
+          0.1527777777777778
+        ],
+        "clusterCount": 12,
+        "bothSuccess": 58,
+        "bothFailure": 2,
+        "baselineOnly": 3,
+        "treatmentOnly": 9,
+        "mcnemarExactP": 0.14599609375,
+        "discordantCaseIds": {
+          "baselineOnly": [
+            "multi-02",
+            "cross-02",
+            "negative-02"
+          ],
+          "treatmentOnly": [
+            "filename-05",
+            "filename-02",
+            "filename-11",
+            "filename-12",
+            "filename-03",
+            "filename-07",
+            "negative-09",
+            "filename-06",
+            "filename-04"
+          ]
+        }
+      }
+    },
+    {
+      "id": "positive",
+      "label": "All positive cases",
+      "baseline": {
+        "successes": 52,
+        "n": 60,
+        "rate": 0.8666666666666667
+      },
+      "treatment": {
+        "successes": 58,
+        "n": 60,
+        "rate": 0.9666666666666667
+      },
+      "paired": {
+        "n": 60,
+        "excludedPairs": 0,
+        "excludedCaseIds": [],
+        "delta": 0.1,
+        "ci95": [
+          0.016666666666666666,
+          0.16666666666666666
+        ],
+        "clusterCount": 12,
+        "bothSuccess": 50,
+        "bothFailure": 0,
+        "baselineOnly": 2,
+        "treatmentOnly": 8,
+        "mcnemarExactP": 0.109375,
+        "discordantCaseIds": {
+          "baselineOnly": [
+            "multi-02",
+            "cross-02"
+          ],
+          "treatmentOnly": [
+            "filename-05",
+            "filename-02",
+            "filename-11",
+            "filename-12",
+            "filename-03",
+            "filename-07",
+            "filename-06",
+            "filename-04"
+          ]
+        }
+      }
+    },
+    {
+      "id": "filename-only",
+      "label": "Filename-only",
+      "baseline": {
+        "successes": 4,
+        "n": 12,
+        "rate": 0.3333333333333333
+      },
+      "treatment": {
+        "successes": 12,
+        "n": 12,
+        "rate": 1
+      },
+      "paired": {
+        "n": 12,
+        "excludedPairs": 0,
+        "excludedCaseIds": [],
+        "delta": 0.6666666666666666,
+        "ci95": [
+          0.4166666666666667,
+          0.9166666666666666
+        ],
+        "clusterCount": 12,
+        "bothSuccess": 4,
+        "bothFailure": 0,
+        "baselineOnly": 0,
+        "treatmentOnly": 8,
+        "mcnemarExactP": 0.0078125,
+        "discordantCaseIds": {
+          "baselineOnly": [],
+          "treatmentOnly": [
+            "filename-05",
+            "filename-02",
+            "filename-11",
+            "filename-12",
+            "filename-03",
+            "filename-07",
+            "filename-06",
+            "filename-04"
+          ]
+        }
+      }
+    },
+    {
+      "id": "negative",
+      "label": "All negative cases",
+      "baseline": {
+        "successes": 9,
+        "n": 12,
+        "rate": 0.75
+      },
+      "treatment": {
+        "successes": 9,
+        "n": 12,
+        "rate": 0.75
+      },
+      "paired": {
+        "n": 12,
+        "excludedPairs": 0,
+        "excludedCaseIds": [],
+        "delta": 0,
+        "ci95": [
+          -0.25,
+          0.25
+        ],
+        "clusterCount": 12,
+        "bothSuccess": 8,
+        "bothFailure": 2,
+        "baselineOnly": 1,
+        "treatmentOnly": 1,
+        "mcnemarExactP": 1,
+        "discordantCaseIds": {
+          "baselineOnly": [
+            "negative-02"
+          ],
+          "treatmentOnly": [
+            "negative-09"
+          ]
+        }
+      }
+    },
+    {
+      "id": "positive-excluding-filename",
+      "label": "Positive, excluding filename-only",
+      "baseline": {
+        "successes": 48,
+        "n": 48,
+        "rate": 1
+      },
+      "treatment": {
+        "successes": 46,
+        "n": 48,
+        "rate": 0.9583333333333334
+      },
+      "paired": {
+        "n": 48,
+        "excludedPairs": 0,
+        "excludedCaseIds": [],
+        "delta": -0.041666666666666664,
+        "ci95": [
+          -0.125,
+          0
+        ],
+        "clusterCount": 12,
+        "bothSuccess": 46,
+        "bothFailure": 0,
+        "baselineOnly": 2,
+        "treatmentOnly": 0,
+        "mcnemarExactP": 0.5,
+        "discordantCaseIds": {
+          "baselineOnly": [
+            "multi-02",
+            "cross-02"
+          ],
+          "treatmentOnly": []
+        }
+      }
+    }
+  ]
+}

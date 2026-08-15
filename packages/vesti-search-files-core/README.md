@@ -12,8 +12,18 @@ The package is ESM-only and requires Node.js 22.12 or newer.
 ```ts
 import { searchFiles, type FileSearchDataSource } from '@vesti/search-files-core';
 
-const result = searchFiles(dataSource, { query: 'OAuth callback', topK: 10 });
+const result = searchFiles(dataSource, {
+  query: 'OAuth callback in vesti-app',
+  project: 'vesti-app',
+  topK: 10,
+});
 ```
+
+`project` accepts an exact project path or an unambiguous project
+name/alias. The optional `sessionRecallLimit` (default 12, maximum 30) and
+`includeTrace` fields exist for controlled evaluation and diagnostics.
+Production MCP responses omit internal traces unless the embedding application
+explicitly consumes them out of band.
 
 Returned paths describe files touched by captured historical sessions. Consumers
 must scope them to the intended project, verify that they still exist, and read

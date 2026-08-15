@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "vesti-file-search-large-v2",
+  "datasetSeed": 221250144,
+  "corpusSha256": "fd79dc8550fad9c4ff186ec5d0a5a1841322bde5388d2f8d6d31071075794a63",
+  "integrity": {
+    "datasetId": "vesti-file-search-large-v2",
+    "seed": 221250144,
+    "projects": 8,
+    "sessions": 146,
+    "cases": 72,
+    "categories": {
+      "semantic-single": 12,
+      "filename-only": 12,
+      "multi-file": 12,
+      "cross-project": 12,
+      "stale-path": 12,
+      "negative": 12
+    },
+    "splits": {
+      "dev": 12,
+      "test": 48,
+      "provisional-holdout": 12
+    }
+  },
+  "split": "all",
+  "caseCount": 72,
+  "repeats": 10,
+  "warmups": 2,
+  "baselineSessionBudget": 5,
+  "resultLimit": 10,
+  "evaluationK": 5,
+  "searchFilesRecallLimit": 30,
+  "nodeVersion": "v24.18.0",
+  "mcpEntry": "<VESTI_APP_ROOT>\\packages\\vesti-mcp\\dist\\index.js",
+  "mcpArtifactSha256": "0e67c5c13c4ca48b680a06756b49f47ed6df96575cdef6e61eebfd200d25ca2f",
+  "mcpArtifactFiles": [
+    {
+      "path": "chunk-S5NTTK7O.js",
+      "sha256": "fc7fa7574e959fad8e9d3cf116e1ed33d1f85def71ce57eedd443ffbb107ed29"
+    },
+    {
+      "path": "chunk-S5NTTK7O.js.map",
+      "sha256": "b06c71cd0dab9ffc5251fa61619c78f52ae52ca78745cac2e10bfe3a7e63662c"
+    },
+    {
+      "path": "cli.d.ts",
+      "sha256": "6caa0b04bdc10582a3729dae9244f21c5bec0b9ffe7e2a84999c2f868f5dd9be"
+    },
+    {
+      "path": "cli.js",
+      "sha256": "4379a6a131e733612a85cf1aca0be1a198b958c1969bff4a0e4a23a387a416f6"
+    },
+    {
+      "path": "cli.js.map",
+      "sha256": "8c91fb42eef964246704b95c4291db3268997226d0fd494d8a32f29759eb94f0"
+    },
+    {
+      "path": "index.d.ts",
+      "sha256": "57955edeb11f92ed8c37a2f0a92700699c1fafbb5ee45c5b91a23ded4135cb8f"
+    },
+    {
+      "path": "index.js",
+      "sha256": "35e651d119435655e52e391556fbc84b50a4c048768565c8d08b343e24fd585c"
+    },
+    {
+      "path": "index.js.map",
+      "sha256": "cba81f7ad4d5b1b629bf43823f1082e73a10d0c3114c937515e7f8c1047629b3"
+    }
+  ],
+  "mcpPackage": "0.1.0",
+  "mcpSdkPackage": "1.29.0",
+  "appGitCommit": "222c00c9224b5038b922e485e2b75af76fa5db00",
+  "corePackage": "0.1.0",
+  "fixtureSchemaSha256": "1134f907553892f7c46bf9831421e914dd46a93863d9c00ed0c656d120941045",
+  "fixtureCounts": {
+    "sessions": 146,
+    "turns": 146,
+    "messages": 292,
+    "tools": 192,
+    "digests": 146
+  },
+  "startedAt": "2026-08-15T08:58:56.980Z",
+  "completedAt": "2026-08-15T08:59:14.456Z"
+}

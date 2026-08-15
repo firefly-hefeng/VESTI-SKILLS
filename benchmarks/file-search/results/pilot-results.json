@@ -1,0 +1,715 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-15T05:04:15.384Z",
+  "corpus": {
+    "sessions": 6,
+    "cases": 5,
+    "positive_cases": 4,
+    "synthetic": true,
+    "repeated_latency_runs": 200
+  },
+  "arms": {
+    "baseline": "legacy vesti_search -> vesti_timeline -> vesti_get_turns upper-bound simulation",
+    "treatment": "single vesti_search_files call through @vesti/search-files-core"
+  },
+  "cases": [
+    {
+      "id": "P1-semantic",
+      "query": "oauth redirect",
+      "expected": [
+        "apps/desktop/src/auth/oauthCallback.ts"
+      ],
+      "expected_projects": [
+        "C:/work/vesti-app"
+      ],
+      "expected_sessions": [
+        "session-oauth"
+      ],
+      "historical_path_exists": null,
+      "note": "Semantic topic lookup.",
+      "baseline": {
+        "metrics": {
+          "ranked_paths": [
+            "apps/desktop/src/auth/oauthCallback.ts"
+          ],
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "recall_at_3": 1,
+          "reciprocal_rank": 1,
+          "negative_false_positive": null,
+          "project_accuracy": 1,
+          "evidence_accuracy": 1,
+          "tool_calls": 3,
+          "context_chars": 548
+        },
+        "latency_us": {
+          "median": 7.7,
+          "p95": 18.1
+        },
+        "trace": [
+          {
+            "tool": "vesti_search",
+            "args": {
+              "query": "oauth redirect",
+              "topK": 12
+            },
+            "result": [
+              {
+                "session_id": "session-oauth",
+                "title": "Fix third-party login redirect handling",
+                "project": "C:/work/vesti-app",
+                "score": 1
+              }
+            ]
+          },
+          {
+            "tool": "vesti_timeline",
+            "args": {
+              "session_id": "session-oauth"
+            },
+            "result": [
+              {
+                "sequence": 1,
+                "user_intent": "oauth redirect callback pkce wechat login state validation",
+                "tool_execution_count": 1
+              }
+            ]
+          },
+          {
+            "tool": "vesti_get_turns",
+            "args": {
+              "session_id": "session-oauth",
+              "turn_ids": [
+                1
+              ]
+            },
+            "result": [
+              {
+                "sequence": 1,
+                "user_input": "oauth redirect callback pkce wechat login state validation",
+                "assistant_response": "Completed work for Fix third-party login redirect handling.",
+                "tool_calls": [
+                  {
+                    "inputSummary": "{\"path\":\"apps/desktop/src/auth/oauthCallback.ts\",\"operation\":\"edit\"}",
+                    "timestamp": 1782900000000
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "treatment": {
+        "metrics": {
+          "ranked_paths": [
+            "apps/desktop/src/auth/oauthCallback.ts"
+          ],
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "recall_at_3": 1,
+          "reciprocal_rank": 1,
+          "negative_false_positive": null,
+          "project_accuracy": 1,
+          "evidence_accuracy": 1,
+          "tool_calls": 1,
+          "context_chars": 332
+        },
+        "latency_us": {
+          "median": 16.1,
+          "p95": 34.6
+        },
+        "trace": [
+          {
+            "tool": "vesti_search_files",
+            "args": {
+              "query": "oauth redirect",
+              "topK": 10
+            },
+            "result": {
+              "query": "oauth redirect",
+              "count": 1,
+              "results": [
+                {
+                  "path": "apps/desktop/src/auth/oauthCallback.ts",
+                  "projects": [
+                    "C:/work/vesti-app"
+                  ],
+                  "touches": 4,
+                  "last_touched": "2026-07-01T10:00:00.000Z",
+                  "sessions": [
+                    {
+                      "session_id": "session-oauth",
+                      "title": "Fix third-party login redirect handling"
+                    }
+                  ],
+                  "matched_via": [
+                    "session-content",
+                    "name"
+                  ],
+                  "score": 5.5
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "P2-filename-only",
+      "query": "billingRules.ts",
+      "expected": [
+        "src/membership/billingRules.ts"
+      ],
+      "expected_projects": [
+        "C:/work/vesti-app"
+      ],
+      "expected_sessions": [
+        "session-membership"
+      ],
+      "historical_path_exists": null,
+      "note": "The filename is absent from searchable session prose.",
+      "baseline": {
+        "metrics": {
+          "ranked_paths": [],
+          "hit_at_1": 0,
+          "hit_at_3": 0,
+          "recall_at_3": 0,
+          "reciprocal_rank": 0,
+          "negative_false_positive": null,
+          "project_accuracy": 0,
+          "evidence_accuracy": 0,
+          "tool_calls": 1,
+          "context_chars": 2
+        },
+        "latency_us": {
+          "median": 2.5,
+          "p95": 3
+        },
+        "trace": [
+          {
+            "tool": "vesti_search",
+            "args": {
+              "query": "billingRules.ts",
+              "topK": 12
+            },
+            "result": []
+          }
+        ]
+      },
+      "treatment": {
+        "metrics": {
+          "ranked_paths": [
+            "src/membership/billingRules.ts"
+          ],
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "recall_at_3": 1,
+          "reciprocal_rank": 1,
+          "negative_false_positive": null,
+          "project_accuracy": 1,
+          "evidence_accuracy": 1,
+          "tool_calls": 1,
+          "context_chars": 309
+        },
+        "latency_us": {
+          "median": 11.2,
+          "p95": 14
+        },
+        "trace": [
+          {
+            "tool": "vesti_search_files",
+            "args": {
+              "query": "billingRules.ts",
+              "topK": 10
+            },
+            "result": {
+              "query": "billingRules.ts",
+              "count": 1,
+              "results": [
+                {
+                  "path": "src/membership/billingRules.ts",
+                  "projects": [
+                    "C:/work/vesti-app"
+                  ],
+                  "touches": 2,
+                  "last_touched": "2026-07-01T14:00:00.000Z",
+                  "sessions": [
+                    {
+                      "session_id": "session-membership",
+                      "title": "Harden entitlement expiration checks"
+                    }
+                  ],
+                  "matched_via": [
+                    "name"
+                  ],
+                  "score": 3.5
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "P3-cross-project",
+      "query": "token accounting",
+      "expected": [
+        "packages/capture-core/src/adapters/codex/parser.ts",
+        "packages/core/src/adapters/codex/parser.ts"
+      ],
+      "expected_projects": [
+        "C:/work/vesti-app",
+        "C:/work/vesti-cli"
+      ],
+      "expected_sessions": [
+        "session-token-app",
+        "session-token-cli"
+      ],
+      "historical_path_exists": null,
+      "note": "Two files in two projects are required.",
+      "baseline": {
+        "metrics": {
+          "ranked_paths": [
+            "packages/core/src/adapters/codex/parser.ts",
+            "packages/capture-core/src/adapters/codex/parser.ts"
+          ],
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "recall_at_3": 1,
+          "reciprocal_rank": 1,
+          "negative_false_positive": null,
+          "project_accuracy": 1,
+          "evidence_accuracy": 1,
+          "tool_calls": 5,
+          "context_chars": 1103
+        },
+        "latency_us": {
+          "median": 8.8,
+          "p95": 16.2
+        },
+        "trace": [
+          {
+            "tool": "vesti_search",
+            "args": {
+              "query": "token accounting",
+              "topK": 12
+            },
+            "result": [
+              {
+                "session_id": "session-token-cli",
+                "title": "Correct cumulative token accounting in CLI capture",
+                "project": "C:/work/vesti-cli",
+                "score": 1
+              },
+              {
+                "session_id": "session-token-app",
+                "title": "Correct cumulative token accounting in desktop capture",
+                "project": "C:/work/vesti-app",
+                "score": 1
+              }
+            ]
+          },
+          {
+            "tool": "vesti_timeline",
+            "args": {
+              "session_id": "session-token-cli"
+            },
+            "result": [
+              {
+                "sequence": 1,
+                "user_intent": "token accounting cumulative usage double count codex cli",
+                "tool_execution_count": 1
+              }
+            ]
+          },
+          {
+            "tool": "vesti_get_turns",
+            "args": {
+              "session_id": "session-token-cli",
+              "turn_ids": [
+                1
+              ]
+            },
+            "result": [
+              {
+                "sequence": 1,
+                "user_input": "token accounting cumulative usage double count codex cli",
+                "assistant_response": "Completed work for Correct cumulative token accounting in CLI capture.",
+                "tool_calls": [
+                  {
+                    "inputSummary": "packages/core/src/adapters/codex/parser.ts",
+                    "timestamp": 1782936000000
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "tool": "vesti_timeline",
+            "args": {
+              "session_id": "session-token-app"
+            },
+            "result": [
+              {
+                "sequence": 1,
+                "user_intent": "token accounting cumulative usage double count codex desktop app",
+                "tool_execution_count": 1
+              }
+            ]
+          },
+          {
+            "tool": "vesti_get_turns",
+            "args": {
+              "session_id": "session-token-app",
+              "turn_ids": [
+                1
+              ]
+            },
+            "result": [
+              {
+                "sequence": 1,
+                "user_input": "token accounting cumulative usage double count codex desktop app",
+                "assistant_response": "Completed work for Correct cumulative token accounting in desktop capture.",
+                "tool_calls": [
+                  {
+                    "inputSummary": "packages/capture-core/src/adapters/codex/parser.ts",
+                    "timestamp": 1782928800000
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "treatment": {
+        "metrics": {
+          "ranked_paths": [
+            "src/ui/dashboard/TokenChart.tsx",
+            "packages/core/src/adapters/codex/parser.ts",
+            "packages/capture-core/src/adapters/codex/parser.ts"
+          ],
+          "hit_at_1": 0,
+          "hit_at_3": 1,
+          "recall_at_3": 1,
+          "reciprocal_rank": 0.5,
+          "negative_false_positive": null,
+          "project_accuracy": 1,
+          "evidence_accuracy": 1,
+          "tool_calls": 1,
+          "context_chars": 908
+        },
+        "latency_us": {
+          "median": 20.6,
+          "p95": 89.4
+        },
+        "trace": [
+          {
+            "tool": "vesti_search_files",
+            "args": {
+              "query": "token accounting",
+              "topK": 10
+            },
+            "result": {
+              "query": "token accounting",
+              "count": 3,
+              "results": [
+                {
+                  "path": "src/ui/dashboard/TokenChart.tsx",
+                  "projects": [
+                    "C:/work/vesti-app"
+                  ],
+                  "touches": 2,
+                  "last_touched": "2026-07-02T00:00:00.000Z",
+                  "sessions": [
+                    {
+                      "session_id": "session-distractor",
+                      "title": "Update dashboard chart colors"
+                    }
+                  ],
+                  "matched_via": [
+                    "name"
+                  ],
+                  "score": 3.5
+                },
+                {
+                  "path": "packages/core/src/adapters/codex/parser.ts",
+                  "projects": [
+                    "C:/work/vesti-cli"
+                  ],
+                  "touches": 2,
+                  "last_touched": "2026-07-01T20:00:00.000Z",
+                  "sessions": [
+                    {
+                      "session_id": "session-token-cli",
+                      "title": "Correct cumulative token accounting in CLI capture"
+                    }
+                  ],
+                  "matched_via": [
+                    "session-content"
+                  ],
+                  "score": 2.5
+                },
+                {
+                  "path": "packages/capture-core/src/adapters/codex/parser.ts",
+                  "projects": [
+                    "C:/work/vesti-app"
+                  ],
+                  "touches": 2,
+                  "last_touched": "2026-07-01T18:00:00.000Z",
+                  "sessions": [
+                    {
+                      "session_id": "session-token-app",
+                      "title": "Correct cumulative token accounting in desktop capture"
+                    }
+                  ],
+                  "matched_via": [
+                    "session-content"
+                  ],
+                  "score": 2.5
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "P4-stale-history",
+      "query": "legacy obsidian export",
+      "expected": [
+        "src/export/legacyObsidianExporter.ts"
+      ],
+      "expected_projects": [
+        "C:/work/vesti-app"
+      ],
+      "expected_sessions": [
+        "session-legacy-export"
+      ],
+      "historical_path_exists": false,
+      "note": "Retrieval should return history; an Agent must still verify the current filesystem.",
+      "baseline": {
+        "metrics": {
+          "ranked_paths": [
+            "src/export/legacyObsidianExporter.ts"
+          ],
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "recall_at_3": 1,
+          "reciprocal_rank": 1,
+          "negative_false_positive": null,
+          "project_accuracy": 1,
+          "evidence_accuracy": 1,
+          "tool_calls": 3,
+          "context_chars": 533
+        },
+        "latency_us": {
+          "median": 6.6,
+          "p95": 7.1
+        },
+        "trace": [
+          {
+            "tool": "vesti_search",
+            "args": {
+              "query": "legacy obsidian export",
+              "topK": 12
+            },
+            "result": [
+              {
+                "session_id": "session-legacy-export",
+                "title": "Build the first Obsidian export flow",
+                "project": "C:/work/vesti-app",
+                "score": 1
+              }
+            ]
+          },
+          {
+            "tool": "vesti_timeline",
+            "args": {
+              "session_id": "session-legacy-export"
+            },
+            "result": [
+              {
+                "sequence": 1,
+                "user_intent": "legacy obsidian export markdown vault conversation archive",
+                "tool_execution_count": 1
+              }
+            ]
+          },
+          {
+            "tool": "vesti_get_turns",
+            "args": {
+              "session_id": "session-legacy-export",
+              "turn_ids": [
+                1
+              ]
+            },
+            "result": [
+              {
+                "sequence": 1,
+                "user_input": "legacy obsidian export markdown vault conversation archive",
+                "assistant_response": "Completed work for Build the first Obsidian export flow.",
+                "tool_calls": [
+                  {
+                    "inputSummary": "Delete src/export/legacyObsidianExporter.ts after migration",
+                    "timestamp": 1782943200000
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "treatment": {
+        "metrics": {
+          "ranked_paths": [
+            "src/export/legacyObsidianExporter.ts"
+          ],
+          "hit_at_1": 1,
+          "hit_at_3": 1,
+          "recall_at_3": 1,
+          "reciprocal_rank": 1,
+          "negative_false_positive": null,
+          "project_accuracy": 1,
+          "evidence_accuracy": 1,
+          "tool_calls": 1,
+          "context_chars": 343
+        },
+        "latency_us": {
+          "median": 15,
+          "p95": 16.8
+        },
+        "trace": [
+          {
+            "tool": "vesti_search_files",
+            "args": {
+              "query": "legacy obsidian export",
+              "topK": 10
+            },
+            "result": {
+              "query": "legacy obsidian export",
+              "count": 1,
+              "results": [
+                {
+                  "path": "src/export/legacyObsidianExporter.ts",
+                  "projects": [
+                    "C:/work/vesti-app"
+                  ],
+                  "touches": 4,
+                  "last_touched": "2026-07-01T22:00:00.000Z",
+                  "sessions": [
+                    {
+                      "session_id": "session-legacy-export",
+                      "title": "Build the first Obsidian export flow"
+                    }
+                  ],
+                  "matched_via": [
+                    "session-content",
+                    "name"
+                  ],
+                  "score": 5.5
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "P5-negative",
+      "query": "stripe invoice webhook",
+      "expected": [],
+      "expected_projects": [],
+      "expected_sessions": [],
+      "historical_path_exists": null,
+      "note": "No supporting history exists.",
+      "baseline": {
+        "metrics": {
+          "ranked_paths": [],
+          "hit_at_1": null,
+          "hit_at_3": null,
+          "recall_at_3": null,
+          "reciprocal_rank": 0,
+          "negative_false_positive": 0,
+          "project_accuracy": null,
+          "evidence_accuracy": null,
+          "tool_calls": 1,
+          "context_chars": 2
+        },
+        "latency_us": {
+          "median": 3.3,
+          "p95": 3.7
+        },
+        "trace": [
+          {
+            "tool": "vesti_search",
+            "args": {
+              "query": "stripe invoice webhook",
+              "topK": 12
+            },
+            "result": []
+          }
+        ]
+      },
+      "treatment": {
+        "metrics": {
+          "ranked_paths": [],
+          "hit_at_1": null,
+          "hit_at_3": null,
+          "recall_at_3": null,
+          "reciprocal_rank": 0,
+          "negative_false_positive": 0,
+          "project_accuracy": null,
+          "evidence_accuracy": null,
+          "tool_calls": 1,
+          "context_chars": 57
+        },
+        "latency_us": {
+          "median": 8.8,
+          "p95": 33.4
+        },
+        "trace": [
+          {
+            "tool": "vesti_search_files",
+            "args": {
+              "query": "stripe invoice webhook",
+              "topK": 10
+            },
+            "result": {
+              "query": "stripe invoice webhook",
+              "count": 0,
+              "results": []
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "baseline": {
+      "hit_at_1": 0.75,
+      "hit_at_3": 0.75,
+      "recall_at_3": 0.75,
+      "mrr": 0.75,
+      "project_accuracy": 0.75,
+      "evidence_accuracy": 0.75,
+      "negative_fpr": 0,
+      "avg_tool_calls": 2.6,
+      "avg_context_chars": 437.6,
+      "latency_us_median": 5.78,
+      "latency_us_p95": 9.620000000000001
+    },
+    "treatment": {
+      "hit_at_1": 0.75,
+      "hit_at_3": 1,
+      "recall_at_3": 1,
+      "mrr": 0.875,
+      "project_accuracy": 1,
+      "evidence_accuracy": 1,
+      "negative_fpr": 0,
+      "avg_tool_calls": 1,
+      "avg_context_chars": 389.8,
+      "latency_us_median": 14.34,
+      "latency_us_p95": 37.64
+    }
+  }
+}

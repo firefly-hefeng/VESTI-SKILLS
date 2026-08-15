@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VESTI historical file-location answer",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "answerable": {
+      "type": "boolean",
+      "description": "True only when the VESTI evidence is sufficient to answer the historical file-location question."
+    },
+    "files": {
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "project": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The project path exactly as returned by VESTI evidence. Use null only when VESTI supplied no project for this file; never guess."
+          },
+          "evidence_session_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "description": "One or more session_id values returned by VESTI that directly support this file path. Never invent ids; omit the file if no supporting session id is available.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "historical_only": {
+            "type": "boolean",
+            "description": "True when the path is asserted only as captured historical evidence, not as a currently verified file."
+          }
+        },
+        "required": [
+          "path",
+          "project",
+          "evidence_session_ids",
+          "historical_only"
+        ]
+      }
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "explanation": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "answerable",
+    "files",
+    "confidence",
+    "explanation"
+  ]
+}
