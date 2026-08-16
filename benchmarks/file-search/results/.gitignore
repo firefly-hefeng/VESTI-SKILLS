@@ -12,3 +12,21 @@
 !full-v2-release-limit30/**
 !agent-factorial-v2-final-limit12/
 !agent-factorial-v2-final-limit12/**
+!agent-targeted-skill-v1-20260816/
+!agent-targeted-skill-v1-20260816/**
+!agent-rapid-v3-20260816/
+!agent-rapid-v3-20260816/**
+
+# Compact reports referenced by the complete audit. Raw development runs stay local.
+!agent-v2-calibration-final-20260816/
+agent-v2-calibration-final-20260816/*
+!agent-v2-calibration-final-20260816/report.md
+!agent-v2-safety-calibration-final-20260816/
+agent-v2-safety-calibration-final-20260816/*
+!agent-v2-safety-calibration-final-20260816/report.md
+!agent-v2-clean-smoke-final-20260816/
+agent-v2-clean-smoke-final-20260816/*
+!agent-v2-clean-smoke-final-20260816/report.md
+!agent-v2-formal-20260816/
+agent-v2-formal-20260816/*
+!agent-v2-formal-20260816/FORMAL-RESULTS-ZH.md

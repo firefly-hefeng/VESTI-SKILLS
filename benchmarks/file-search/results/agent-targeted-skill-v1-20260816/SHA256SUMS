@@ -1,0 +1,11 @@
+00229eb2a687041c6ec48418de04e07a63551b8f84d723da3ffa18b60e23d7a8  manifest.json
+124824d8744739cc81f663c68a45847516405e4943b4d8969fce1855711906f5  runs.ndjson
+5f682807f2ea0e2aab9034ffd9cc39fc348606bbd114e87a53d6837bad75a9a8  summary.json
+42632538898dbf1d9077e503b0f1bdfbc303cc6f7a7cffc25666d95d88a6405e  report.md
+fa427c704155526871b5b91785dc6853edaf172b4f9797a4ed97112e6fc1ac4c  TARGETED-RESULTS-ZH.md
+1409822cb8cf643bb3709c59609763cb20f797ae35a8d45881be0d8e4089e8cf  ../../targeted-skill-v1/PREREGISTRATION.md
+723c69619c210df48974bd1306553148f7709a37ded2ff771e51f8debc24c0c5  ../../targeted-skill-v1/LOCK.json
+a8edd87f72cd851928afd99b3ddb414aed0b7b9496e52977b0728dd02246d701  ../../targeted-skill-v1/corpus.mjs
+271a3a86082150c8cc40d6549204f665ead08fdc0d117bc4997ba9d056ed2025  ../../targeted-skill-v1/run-agent-targeted.mjs
+f428864022e0f42904e9aafec10a935d44f17bf2743beedd2d21c0384a81ad91  ../../targeted-skill-v1/vesti-file-locator-v3-frozen.md
+92464debf1e4d61283e8723035662fbba817139da97b0027b0e329dc3403fd70  ../../rapid-v3/agent-output-schema.json

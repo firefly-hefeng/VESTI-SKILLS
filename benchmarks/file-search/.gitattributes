@@ -1,0 +1,6 @@
+*.md text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.ndjson text eol=lf
+SHA256SUMS text eol=lf
+*.pptx binary

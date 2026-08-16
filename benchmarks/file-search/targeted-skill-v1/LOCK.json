@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "status": "LOCKED",
+  "experimentId": "vesti-file-search-targeted-skill-v1",
+  "lockedAt": "2026-08-16T05:10:24.318Z",
+  "role": "preregistered exploratory capability-targeted paired evaluation",
+  "caseCount": 16,
+  "runCount": 32,
+  "repeats": 1,
+  "model": "gpt-5.6-luna",
+  "arms": ["modern-none", "modern-vesti-v3"],
+  "hashes": {
+    "corpusModule": "a8edd87f72cd851928afd99b3ddb414aed0b7b9496e52977b0728dd02246d701",
+    "runner": "271a3a86082150c8cc40d6549204f665ead08fdc0d117bc4997ba9d056ed2025",
+    "skill": "f428864022e0f42904e9aafec10a935d44f17bf2743beedd2d21c0384a81ad91",
+    "outputSchema": "92464debf1e4d61283e8723035662fbba817139da97b0027b0e329dc3403fd70",
+    "appMcpDist": "aaeb73e447aea2f2641e3e1bc8f2e26a771581eb5e437f803c146b2ac83502bb",
+    "fixtureDb": "92943e9e4da4f2b141197295cdf5b4fcdec599d7dabd87e03692089b79a567a7",
+    "schedule": "0e287a64db679d7ccf3f2f2fbef78b910e27b5051bec6405ce9895db7ca25b42",
+    "experiment": "199814cc58a09ab2856004770050a7a5640541c8ff3c5927e5c78bb369e0b4ff"
+  },
+  "exclusionsAfterLock": [],
+  "notes": [
+    "Synthetic and deliberately enriched for frozen Skill responsibilities.",
+    "All 16 tasks and all failures must be reported.",
+    "Not an estimate of the natural user-task distribution and not pooled with prior studies."
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VESTI file-location response",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "answerable": {
+      "type": "boolean",
+      "description": "True only when captured historical-session evidence supports every returned file. Must be false when files is empty."
+    },
+    "files": {
+      "type": "array",
+      "maxItems": 10,
+      "description": "The exact minimal set of files supported by captured history; do not include plausible but unsupported alternatives.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "project": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence_session_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "historical_only": {
+            "type": "boolean",
+            "description": "Captured history does not establish current filesystem existence. Set true unless current existence was independently verified."
+          }
+        },
+        "required": [
+          "path",
+          "project",
+          "evidence_session_ids",
+          "historical_only"
+        ]
+      }
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "explanation": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "answerable",
+    "files",
+    "confidence",
+    "explanation"
+  ]
+}

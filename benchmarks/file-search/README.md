@@ -1,16 +1,33 @@
 # File-search evaluation
 
-This directory evaluates `vesti_search_files` at three separate layers:
+For the product-level view that treats MCP retrieval and Skill validation as
+one paired VESTI method, start with the
+[Chinese public results summary](PUBLIC-RESULTS-ZH.md). The
+[complete Chinese technical audit](INTEGRATED-METHOD-RESULTS-ZH.md) retains
+every experiment, diagnostic result and interpretation boundary. The separate
+layers below are retained for causal attribution and reproducibility.
+
+Presentation-ready materials:
+
+- [Chinese public results summary](PUBLIC-RESULTS-ZH.md)
+- [Chinese slide deck](presentation/VESTI-MCP-SKILL-实验结果汇报-定向能力更新.pptx)
+- [One-page Chinese briefing](presentation/汇报速览.md)
+
+This directory evaluates `vesti_search_files` at four separate layers:
 
 1. a five-case in-memory smoke test for the reusable retrieval core;
 2. a 72-case deterministic test through the built VESTI-APP MCP server and a
    real SQLite/FTS fixture;
 3. a blinded 2 x 2 Agent experiment that separates the effect of the new tool
-   from the effect of the `vesti-memory` Skill instructions.
+   from the effect of the `vesti-memory` Skill instructions; and
+4. a small, preregistered capability-targeted two-arm study that holds the MCP
+   surface fixed and tests the incremental effect of frozen Skill decision
+   rules in deliberately enriched ambiguity and evidence-verification tasks.
 
 Do not combine these layers into one claim. The deterministic benchmark tests
 retrieval and MCP wiring; only the four-arm experiment can estimate an Agent or
-Skill effect.
+Skill effect. The targeted study estimates a narrower Skill effect only within
+its predefined mechanism scenarios; it is not an overall user-task benchmark.
 
 ## Prerequisites
 
@@ -307,6 +324,58 @@ Artifacts and the complete per-run audit trail are in
 Canonical result directories include SHA-256 inventories and machine-specific
 repository/tool installation paths are replaced with explicit placeholders.
 
+## Targeted Skill mechanism evaluation
+
+This study was defined and locked before the first model call. It keeps the
+model, fixture, output schema and four-tool VESTI MCP surface identical between
+the two arms:
+
+- **B / modern-none:** MCP only, with no Skill text;
+- **D / modern-vesti-v3:** the same MCP plus the frozen V3 file-locator Skill.
+
+The 16-case synthetic corpus deliberately enriches four responsibilities of the
+Skill: full-condition verification, minimal multi-file sets, project isolation,
+and relational abstention. It contains 8 independent concepts, 12 positive
+cases and 4 relational negatives. Every positive has one fully supporting
+session and three sessions satisfying only two of the three required
+conditions. All 16 cases and all failures are reported.
+
+Run the no-call validation first:
+
+```bash
+node benchmarks/file-search/targeted-skill-v1/run-agent-targeted.mjs \
+  --dataset benchmarks/file-search/targeted-skill-v1/corpus.mjs \
+  --max-cases 16 \
+  --concurrency 2 \
+  --dry-run \
+  --results-dir benchmarks/file-search/results/agent-targeted-skill-v1-dryrun
+```
+
+The executed 2026-08-16 run completed 32/32 calls with no run-level, MCP,
+parse, or cleanup failures. Some runs emitted non-fatal environment messages on
+stderr (for example model-list refresh, WebSocket, or telemetry messages), but
+all 32 runs completed. The complete method scored **14/16 (87.5%)**, compared
+with **12/16 (75.0%)** for the same MCP without the Skill: a paired observed
+difference of **+12.5 percentage points**, with 2 D-only wins, 0 losses and 14
+ties. Positive exact-set success was 12/12 versus 11/12; actual wrong-file
+returns on the four relational negatives were 2/4 versus 3/4.
+
+The concept-cluster bootstrap interval was [0.0,+31.3] percentage points and the
+exact paired McNemar p-value was 0.50. This is exploratory mechanism evidence,
+not a statistically confirmed overall effect. The distribution is synthetic
+and deliberately enriched, the model is `gpt-5.6-luna`, and each arm ran once.
+Do not pool these results with the earlier factorial, formal or rapid studies.
+
+Reproduction and audit artifacts:
+
+- [`targeted-skill-v1/PREREGISTRATION.md`](targeted-skill-v1/PREREGISTRATION.md)
+- [`targeted-skill-v1/LOCK.json`](targeted-skill-v1/LOCK.json)
+- [`TARGETED-RESULTS-ZH.md`](results/agent-targeted-skill-v1-20260816/TARGETED-RESULTS-ZH.md)
+- [`manifest.json`](results/agent-targeted-skill-v1-20260816/manifest.json)
+- [`summary.json`](results/agent-targeted-skill-v1-20260816/summary.json)
+- [`runs.ndjson`](results/agent-targeted-skill-v1-20260816/runs.ndjson)
+- [`SHA256SUMS`](results/agent-targeted-skill-v1-20260816/SHA256SUMS)
+
 ## Interpretation boundaries
 
 - The corpus is synthetic, inspectable, and versioned. Results are engineering
@@ -320,3 +389,7 @@ repository/tool installation paths are replaced with explicit placeholders.
 - Model-visible bytes in deterministic runs and model usage Tokens in Agent
   runs are different quantities and must not be compared as if they were the
   same unit.
+- The targeted Skill study holds the MCP fixed and estimates only the frozen
+  instruction treatment in an intentionally enriched synthetic distribution.
+  It does not estimate the average effect for natural user requests, and its
+  16 cases must not be pooled with the other datasets.

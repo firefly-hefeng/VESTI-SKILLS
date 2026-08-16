@@ -1,0 +1,24 @@
+{
+  "status": "LOCKED_BEFORE_MODEL_CALLS",
+  "lockedAt": "2026-08-16T10:55:07.8970906+08:00",
+  "scope": "exploratory rapid engineering validation; 24 unseen cases; B/D only; one repeat",
+  "baseCommit": "d01cc284654edc667e1efe370c3c1176e197ee2a",
+  "model": "gpt-5.6-luna",
+  "datasetSha256": "5f0771d90431026b78085b4b4956a8c9d2ff0e8008367d8f43cfc67e7bdd38f6",
+  "corpusSha256": "c3eacece8bb5e06659cd4ce1ce32d332844ea44f6092a96d8abafd7bfc14d648",
+  "runnerSha256": "6a439a09f9b4201a934e0e4c91e6dfb07ba47a8539f9666fa2a1ed4b6861b0b6",
+  "schemaSha256": "92464debf1e4d61283e8723035662fbba817139da97b0027b0e329dc3403fd70",
+  "skillSha256": "f428864022e0f42904e9aafec10a935d44f17bf2743beedd2d21c0384a81ad91",
+  "fixtureSha256": "dc0c42069c605cbebff489d6b4bfc481b950039e64df9e8b4cc8ec7c1b34c33b",
+  "scheduleSha256": "7e54f52603c9877fcb309963ebe268258ff96e6c20b7a493702e7940a45a8368",
+  "experimentHash": "192bb4a7e03d6bf8fe3a2ded98a9eab68d6d0b050865b3b18d193b201372a039",
+  "mcpArtifactSha256": "aaeb73e447aea2f2641e3e1bc8f2e26a771581eb5e437f803c146b2ac83502bb",
+  "benchmarkMcpSha256": "f94c7fc74057dab7c861c1342eae7f9cdbf904b49e0ebf07a782a801686c7524",
+  "commonInstructionsSha256": "a5b00b1e74dc94e4777b11030bf9342774ac816f6fd2452ddd9eae6c523d35b0",
+  "arms": [
+    "modern-none",
+    "modern-vesti-v3"
+  ],
+  "runCount": 48,
+  "postLockTuningAllowed": false
+}

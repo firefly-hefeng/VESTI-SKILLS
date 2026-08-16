@@ -4,7 +4,10 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SKILLS_ROOT = resolve(HERE, '..', '..');
-const APP_ROOT = resolve(SKILLS_ROOT, '..', 'VESTI-APP');
+const APP_ROOTS = [
+  resolve(SKILLS_ROOT, '..', 'VESTI-APP'),
+  process.env.VESTI_APP_ROOT ? resolve(process.env.VESTI_APP_ROOT) : null,
+].filter(Boolean);
 
 function variants(path) {
   return [
@@ -22,8 +25,10 @@ function sanitizeString(value) {
   for (const root of variants(SKILLS_ROOT)) {
     sanitized = replaceAll(sanitized, root, '<VESTI_SKILLS_ROOT>');
   }
-  for (const root of variants(APP_ROOT)) {
-    sanitized = replaceAll(sanitized, root, '<VESTI_APP_ROOT>');
+  for (const appRoot of APP_ROOTS) {
+    for (const root of variants(appRoot)) {
+      sanitized = replaceAll(sanitized, root, '<VESTI_APP_ROOT>');
+    }
   }
   return sanitized;
 }
@@ -31,6 +36,9 @@ function sanitizeString(value) {
 function sanitize(value, key = '') {
   if (key === 'codexCommand' && Array.isArray(value)) {
     return ['<NODE_EXECUTABLE>', '<CODEX_CLI_ENTRY>'];
+  }
+  if (key === 'stderr' && typeof value === 'string' && value.length > 0) {
+    return '<NON_FATAL_RUNTIME_LOG_REDACTED>';
   }
   if (typeof value === 'string') return sanitizeString(value);
   if (Array.isArray(value)) return value.map(item => sanitize(item));
