@@ -25,7 +25,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Workspace exports point to dist; build them before checking consumers.
+      - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm test
-      - run: pnpm build
       - run: pnpm --filter @vesti/mcp smoke:standalone
