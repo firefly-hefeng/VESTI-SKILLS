@@ -16,12 +16,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./cli": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "smoke:standalone": "node scripts/smoke-standalone.mjs",
     "prepack": "pnpm typecheck && pnpm test && pnpm build"
   },
   "engines": {
@@ -38,6 +40,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@vesti/capture-runtime": "workspace:*",
     "@vesti/search-files-core": "workspace:*",
     "better-sqlite3": "^12.11.1"
   },

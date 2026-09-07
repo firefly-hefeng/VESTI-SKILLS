@@ -1,15 +1,15 @@
 /**
  * Cross-session recall — a port of capture-core's SessionRecall (FTS5 over
  * messages_fts and sessions_fts fused with Reciprocal Rank Fusion, k=60),
- * re-implemented here against `node:sqlite` so the MCP server has zero
- * dependency on the desktop app's better-sqlite3 native binary.
+ * implemented against the MCP package's VestiDatabase abstraction, with no
+ * dependency on the desktop application process.
  *
  * The vector signal from SessionRecall is intentionally omitted: digest
  * embeddings require an embedding service that is only available inside the
  * running app. Without a query vector SessionRecall degrades to pure FTS as
  * well, so behavior matches its documented fallback path.
  *
- * Schema compatibility: the desktop app owns all migrations. This consumer
+ * Schema compatibility: the capture/runtime owner applies migrations. This consumer
  * detects at query time which shape it is reading —
  *   - messages_fts tokenizer: trigram (schema v5+) or the unicode61 default
  *     (older DBs). The same quoted-token OR query parses under both; only
@@ -112,81 +112,116 @@ export function effectiveTokens(query: string, tokenizer: string): string[] {
   return tokens.filter(token => [...token].length >= TRIGRAM_MIN_TOKEN_CHARS);
 }
 
-interface QueryTokenSpan { text: string; start: number; end: number }
+const charLen = (s: string): number => [...s].length;
+const SHORT_FALLBACK_STOP_WORDS = new Set([
+  'a', 'an', 'as', 'at', 'be', 'by', 'if', 'in', 'is', 'it', 'of', 'on',
+  'or', 'to', '项目', '文件', '目录', '位置', '代码', '哪里', '哪个',
+  '哪些', '什么', '怎么', '如何', '是否', '请问', '帮我', '一下',
+  '相关', '内容', '信息', '记录', '对话', '会话', '历史', '最近',
+  '目前', '现在', '最终', '找到', '查找', '定位', '查看', '看看',
+]);
+const CJK_WORD = /^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+$/u;
+const MAX_SHORT_FALLBACK_TOKENS = 8;
 
-/** recallTokens with source offsets, so original separators stay recoverable. */
-function queryTokenSpans(query: string): QueryTokenSpan[] {
-  const spans: QueryTokenSpan[] = [];
-  const re = /[\p{L}\p{N}_]+/gu;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(query)) !== null) {
-    spans.push({ text: match[0], start: match.index, end: match.index + match[0].length });
-  }
-  return spans;
+interface SegmentLike {
+  segment: string;
+  isWordLike?: boolean;
 }
 
-const charLen = (s: string): number => [...s].length;
+/**
+ * Split a natural, unspaced CJK run into conservative semantic words.
+ * `Intl.Segmenter` is shipped by supported Node/Electron runtimes and turns
+ * e.g. "采集增量防护在哪个文件" into 采集/增量/防护/在/哪个/文件.
+ * Structural question words and one-character particles are discarded, so
+ * every emitted two-character unit is safe to use in a parameterized LIKE.
+ */
+function cjkSemanticUnits(token: string): string[] {
+  if (!CJK_WORD.test(token) || charLen(token) < TRIGRAM_MIN_TOKEN_CHARS) return [token];
+  let segments: SegmentLike[] = [];
+  try {
+    const Segmenter = Intl.Segmenter;
+    segments = [...new Segmenter('zh', { granularity: 'word' }).segment(token)] as SegmentLike[];
+  } catch {
+    // Minimal-ICU runtimes are uncommon, but preserving the original token
+    // keeps the normal trigram path working instead of failing the request.
+    return [token];
+  }
+  const meaningful = segments
+    .filter(segment => segment.isWordLike !== false)
+    .map(segment => segment.segment.toLowerCase())
+    .filter(segment => charLen(segment) >= 2)
+    .filter(segment => !SHORT_FALLBACK_STOP_WORDS.has(segment));
+
+  // ICU's dictionary deliberately favours precision and can split an
+  // otherwise ordinary domain term into single Han characters (for example
+  // "重试" -> "重"/"试" and "轮询" -> "轮"/"询").  Trigram FTS cannot
+  // search either character, so conservatively reconstruct adjacent bigrams
+  // inside each consecutive run of one-character CJK word segments.  Do not
+  // bridge a recognised multi-character word or punctuation boundary.
+  const reconstructedBigrams: string[] = [];
+  let singleRun: string[] = [];
+  const flushSingleRun = (): void => {
+    for (let i = 0; i + 1 < singleRun.length; i += 1) {
+      const bigram = `${singleRun[i]}${singleRun[i + 1]}`.toLowerCase();
+      if (!SHORT_FALLBACK_STOP_WORDS.has(bigram)) reconstructedBigrams.push(bigram);
+    }
+    singleRun = [];
+  };
+  for (const segment of segments) {
+    const value = segment.segment.toLowerCase();
+    if (segment.isWordLike !== false && CJK_WORD.test(value) && charLen(value) === 1) {
+      singleRun.push(value);
+    } else {
+      flushSingleRun();
+    }
+  }
+  flushSingleRun();
+
+  const units = [...new Set([...meaningful, ...reconstructedBigrams])];
+  return units.length > 0 ? units : [token];
+}
 
 export interface QueryPlan {
   /**
-   * FTS5 MATCH expression (quoted OR branches). Under trigram, runs of
-   * short (<3-char) tokens are additionally merged into verbatim spans using
-   * the original separators ("CI 平台 选型" → `"CI 平台"`): a quoted trigram
-   * phrase is a substring match, so a ≥3-char span matches even though its
-   * 2-char parts cannot.
+   * FTS5 MATCH expression (quoted OR branches). Under trigram this contains
+   * only independently matchable tokens (three or more Unicode code points).
    */
   ftsQuery: string;
   /**
-   * Units that can literally appear in the matched text (long tokens plus
-   * merged spans of COVERAGE_MERGED_MIN_CHARS+). Confidence coverage basis.
+   * Units that can literally appear in the matched text. Confidence coverage
+   * includes independently queried two-character LIKE fallback terms.
    */
   matchUnits: string[];
+  /** Meaningful two-character terms queried independently through LIKE. */
+  shortFallbackTokens: string[];
 }
 
 /** Tokenizer-aware query construction; the unicode61 path is unchanged. */
 export function buildQueryPlan(query: string, tokenizer: string): QueryPlan {
-  const spans = queryTokenSpans(query);
+  const tokens = recallTokens(query);
   const quote = (s: string) => `"${s.replace(/"/g, '""')}"`;
   if (tokenizer !== 'trigram') {
-    return { ftsQuery: spans.map(s => quote(s.text)).join(' OR '), matchUnits: spans.map(s => s.text) };
+    return {
+      ftsQuery: tokens.map(quote).join(' OR '),
+      matchUnits: tokens,
+      shortFallbackTokens: [],
+    };
   }
-  const isShort = (text: string) => charLen(text) < TRIGRAM_MIN_TOKEN_CHARS;
-  const branches: string[] = [];
-  const matchUnits: string[] = [];
-  let i = 0;
-  while (i < spans.length) {
-    const span = spans[i];
-    if (!isShort(span.text)) {
-      branches.push(quote(span.text));
-      matchUnits.push(span.text);
-      i += 1;
-      continue;
-    }
-    // A run of consecutive short tokens merges into one verbatim span.
-    let j = i;
-    while (j + 1 < spans.length && isShort(spans[j + 1].text)) j += 1;
-    const shortChars = spans.slice(i, j + 1).reduce((n, s) => n + charLen(s.text), 0);
-    let merged = query.slice(span.start, spans[j].end);
-    if (charLen(merged) < TRIGRAM_MIN_TOKEN_CHARS) {
-      // Still too short ("M3 里程碑…" → "M3"): absorb a prefix of the next
-      // long token (or a suffix of the previous one at query end). The
-      // neighbour keeps its own branch — the merge only adds a span branch.
-      const need = TRIGRAM_MIN_TOKEN_CHARS - charLen(merged);
-      if (j + 1 < spans.length) {
-        merged += query.slice(spans[j].end, spans[j + 1].start)
-          + [...spans[j + 1].text].slice(0, need).join('');
-      } else if (i > 0) {
-        merged = [...spans[i - 1].text].slice(-need).join('')
-          + query.slice(spans[i - 1].end, spans[j].end);
-      }
-    }
-    if (charLen(merged) >= TRIGRAM_MIN_TOKEN_CHARS) {
-      branches.push(quote(merged));
-      if (shortChars >= COVERAGE_MERGE_MIN_SHORT_CHARS) matchUnits.push(merged);
-    }
-    i = j + 1;
-  }
-  return { ftsQuery: branches.join(' OR '), matchUnits };
+  const plannedUnits = tokens.flatMap(cjkSemanticUnits);
+  // Keep the original long token as an exact trigram branch for consumers
+  // such as memory_search; semantic fragments are additional recall paths.
+  const longTokens = [...new Set([...tokens, ...plannedUnits]
+    .map(token => token.toLowerCase())
+    .filter(token => charLen(token) >= TRIGRAM_MIN_TOKEN_CHARS))];
+  const shortFallbackTokens = [...new Set(plannedUnits
+    .map(token => token.toLowerCase())
+    .filter(token => charLen(token) === 2 && !SHORT_FALLBACK_STOP_WORDS.has(token)))]
+    .slice(0, MAX_SHORT_FALLBACK_TOKENS);
+  return {
+    ftsQuery: longTokens.map(quote).join(' OR '),
+    matchUnits: [...longTokens, ...shortFallbackTokens],
+    shortFallbackTokens,
+  };
 }
 
 /** Confidence from token coverage; exported for tests. */
@@ -216,38 +251,146 @@ interface MessageHitRow {
   content_text: string | null;
 }
 
-function rankMessageHits(db: VestiDatabase, ftsQuery: string, limit: number): MessageHitRow[] {
+function projectFilter(column: string, projectPaths: string[]): { sql: string; params: string[] } {
+  if (projectPaths.length === 0) return { sql: '', params: [] };
+  return {
+    sql: ` AND ${column} IN (${projectPaths.map(() => '?').join(', ')})`,
+    params: projectPaths,
+  };
+}
+
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, match => `\\${match}`);
+}
+
+function rankMessageHits(
+  db: VestiDatabase,
+  ftsQuery: string,
+  limit: number,
+  projectPaths: string[],
+): MessageHitRow[] {
   try {
+    const scope = projectFilter('ws.project_path', projectPaths);
     return db
       .prepare(
-        `SELECT m.session_id, m.content_text
-         FROM messages_fts fts
-         JOIN messages m ON m.rowid = fts.rowid
-         WHERE messages_fts MATCH ?
-         ORDER BY rank
+        `WITH ranked_messages AS (
+           SELECT m.session_id, m.content_text, m.timestamp, fts.rank AS fts_rank,
+                  ROW_NUMBER() OVER (
+                    PARTITION BY m.session_id
+                    ORDER BY fts.rank ASC, m.timestamp DESC, m.rowid DESC
+                  ) AS session_row
+           FROM messages_fts fts
+           JOIN messages m ON m.rowid = fts.rowid
+           JOIN work_sessions ws ON ws.id = m.session_id
+           WHERE messages_fts MATCH ?
+           ${scope.sql}
+         )
+         SELECT session_id, content_text
+         FROM ranked_messages
+         WHERE session_row = 1
+         ORDER BY fts_rank ASC, timestamp DESC, session_id
          LIMIT ?`,
       )
-      .all(ftsQuery, limit) as unknown as MessageHitRow[];
+      .all(ftsQuery, ...scope.params, limit) as unknown as MessageHitRow[];
   } catch {
     return [];
   }
 }
 
-function rankSessionHits(db: VestiDatabase, ftsQuery: string, limit: number): Array<{ id: string }> {
+function rankSessionHits(
+  db: VestiDatabase,
+  ftsQuery: string,
+  limit: number,
+  projectPaths: string[],
+): Array<{ id: string }> {
   try {
+    const scope = projectFilter('ws.project_path', projectPaths);
     return db
       .prepare(
         `SELECT ws.id
          FROM sessions_fts fts
          JOIN work_sessions ws ON ws.rowid = fts.rowid
          WHERE sessions_fts MATCH ?
+         ${scope.sql}
          ORDER BY rank
          LIMIT ?`,
       )
-      .all(ftsQuery, limit) as unknown as Array<{ id: string }>;
+      .all(ftsQuery, ...scope.params, limit) as unknown as Array<{ id: string }>;
   } catch {
     return [];
   }
+}
+
+function rankMessageLikeHits(
+  db: VestiDatabase,
+  token: string,
+  limit: number,
+  projectPaths: string[],
+): MessageHitRow[] {
+  try {
+    const scope = projectFilter('ws.project_path', projectPaths);
+    return db.prepare(
+      `WITH ranked_messages AS (
+         SELECT m.session_id, m.content_text, m.timestamp,
+                ROW_NUMBER() OVER (
+                  PARTITION BY m.session_id
+                  ORDER BY m.timestamp DESC, m.rowid DESC
+                ) AS session_row
+         FROM messages m
+         JOIN work_sessions ws ON ws.id = m.session_id
+         WHERE m.content_text LIKE ? ESCAPE '\\'
+         ${scope.sql}
+       )
+       SELECT session_id, content_text
+       FROM ranked_messages
+       WHERE session_row = 1
+       ORDER BY timestamp DESC, session_id
+       LIMIT ?`,
+    ).all(`%${escapeLike(token)}%`, ...scope.params, limit) as unknown as MessageHitRow[];
+  } catch {
+    return [];
+  }
+}
+
+function rankSessionLikeHits(
+  db: VestiDatabase,
+  token: string,
+  limit: number,
+  projectPaths: string[],
+): Array<{ id: string }> {
+  try {
+    const scope = projectFilter('ws.project_path', projectPaths);
+    const pattern = `%${escapeLike(token)}%`;
+    return db.prepare(
+      `SELECT ws.id
+       FROM work_sessions ws
+       WHERE (ws.title LIKE ? ESCAPE '\\' OR COALESCE(ws.summary, '') LIKE ? ESCAPE '\\')
+       ${scope.sql}
+       ORDER BY ws.last_activity_at DESC, ws.id
+       LIMIT ?`,
+    ).all(pattern, pattern, ...scope.params, limit) as unknown as Array<{ id: string }>;
+  } catch {
+    return [];
+  }
+}
+
+export interface RecallTrace {
+  tokenizer: string;
+  ftsQuery: string;
+  matchUnits: string[];
+  shortFallbackTokens: string[];
+  projectPaths: string[];
+  candidateLimit: number;
+  lists: Array<{ source: string; sessionIds: string[] }>;
+  ranked: Array<{ sessionId: string; score: number }>;
+}
+
+export interface RecallOptions {
+  topK?: number;
+  candidateLimit?: number;
+  now?: number;
+  projectPaths?: string[];
+  onTrace?: (trace: RecallTrace) => void;
 }
 
 /**
@@ -260,23 +403,22 @@ function rankSessionHits(db: VestiDatabase, ftsQuery: string, limit: number): Ar
 export function recallSessions(
   db: VestiDatabase,
   query: string,
-  options: { topK?: number; candidateLimit?: number; now?: number } = {},
+  options: RecallOptions = {},
 ): RecallHit[] {
   const topK = options.topK ?? 8;
   if (topK <= 0) return [];
   const candidateLimit = options.candidateLimit ?? DEFAULT_CANDIDATE_LIMIT;
+  const projectPaths = [...new Set(options.projectPaths ?? [])];
   const tokens = recallTokens(query);
   const tokenizer = detectFtsTokenizer(db);
-  const { ftsQuery, matchUnits } = buildQueryPlan(query, tokenizer);
-  if (!ftsQuery) return [];
+  const { ftsQuery, matchUnits, shortFallbackTokens } = buildQueryPlan(query, tokenizer);
 
   const lists: string[][] = [];
+  const listTrace: RecallTrace['lists'] = [];
   const snippetBySession = new Map<string, string>();
   const coverageBySession = new Map<string, number>();
-
-  const messageSessionIds: string[] = [];
   const loweredUnits = matchUnits.map(unit => unit.toLowerCase());
-  for (const row of rankMessageHits(db, ftsQuery, candidateLimit * 4)) {
+  const observeMessage = (row: MessageHitRow) => {
     if (!snippetBySession.has(row.session_id)) {
       snippetBySession.set(row.session_id, buildSnippet(row.content_text ?? '', tokens));
     }
@@ -288,16 +430,49 @@ export function recallSessions(
         coverageBySession.set(row.session_id, ratio);
       }
     }
-    if (!messageSessionIds.includes(row.session_id)) {
-      messageSessionIds.push(row.session_id);
-    }
+  };
+  const pushList = (source: string, sessionIds: string[]) => {
+    const unique = [...new Set(sessionIds)].slice(0, candidateLimit);
+    lists.push(unique);
+    listTrace.push({ source, sessionIds: unique });
+  };
+
+  if (ftsQuery) {
+    const messageRows = rankMessageHits(db, ftsQuery, candidateLimit, projectPaths);
+    for (const row of messageRows) observeMessage(row);
+    pushList('fts-messages', messageRows.map(row => row.session_id));
+    pushList(
+      'fts-sessions',
+      rankSessionHits(db, ftsQuery, candidateLimit, projectPaths).map(row => row.id),
+    );
   }
-  lists.push(messageSessionIds.slice(0, candidateLimit));
-  lists.push(rankSessionHits(db, ftsQuery, candidateLimit).map(row => row.id));
 
-  if (lists.every(list => list.length === 0)) return [];
+  for (const token of shortFallbackTokens) {
+    const messageRows = rankMessageLikeHits(db, token, candidateLimit, projectPaths);
+    for (const row of messageRows) observeMessage(row);
+    pushList(`like-messages:${token}`, messageRows.map(row => row.session_id));
+    pushList(
+      `like-sessions:${token}`,
+      rankSessionLikeHits(db, token, candidateLimit, projectPaths).map(row => row.id),
+    );
+  }
 
-  // RRF fusion; ties break by session id for deterministic output.
+  if (lists.every(list => list.length === 0)) {
+    options.onTrace?.({
+      tokenizer,
+      ftsQuery,
+      matchUnits,
+      shortFallbackTokens,
+      projectPaths,
+      candidateLimit,
+      lists: listTrace,
+      ranked: [],
+    });
+    return [];
+  }
+
+  // RRF fusion; independently matched two-character terms contribute their
+  // own lists, so a session containing both outranks a one-term distractor.
   const scores = new Map<string, number>();
   for (const list of lists) {
     list.forEach((sessionId, index) => {
@@ -312,12 +487,27 @@ export function recallSessions(
   const activityStmt = db.prepare('SELECT last_activity_at FROM work_sessions WHERE id = ?');
   for (const [sessionId, score] of scores) {
     const row = activityStmt.get(sessionId) as { last_activity_at: number } | undefined;
-    scores.set(sessionId, score * recencyFactor(row?.last_activity_at ?? 0, now));
+    const coverage = coverageBySession.get(sessionId) ?? 0;
+    const coverageFactor = matchUnits.length > 1 ? 0.45 + 0.55 * coverage : 1;
+    scores.set(
+      sessionId,
+      score * recencyFactor(row?.last_activity_at ?? 0, now) * coverageFactor,
+    );
   }
 
-  const ranked = [...scores.entries()]
-    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
-    .slice(0, topK);
+  const rankedAll = [...scores.entries()]
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  options.onTrace?.({
+    tokenizer,
+    ftsQuery,
+    matchUnits,
+    shortFallbackTokens,
+    projectPaths,
+    candidateLimit,
+    lists: listTrace,
+    ranked: rankedAll.slice(0, Math.max(topK, 30)).map(([sessionId, score]) => ({ sessionId, score })),
+  });
+  const ranked = rankedAll.slice(0, topK);
 
   return ranked.map(([sessionId, score]) => ({
     sessionId,

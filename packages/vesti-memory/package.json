@@ -1,0 +1,50 @@
+{
+  "name": "@vesti/memory",
+  "version": "0.1.0",
+  "description": "Standalone VESTI memory setup and diagnostics CLI for capture runtime, MCP and host skills",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "vesti": "./dist/cli.js"
+  },
+  "files": [
+    "assets",
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepack": "pnpm typecheck && pnpm test && pnpm build"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/firefly-hefeng/VESTI-SKILLS.git",
+    "directory": "packages/vesti-memory"
+  },
+  "dependencies": {
+    "@vesti/capture-runtime": "workspace:*",
+    "@vesti/mcp": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^1.2.0"
+  }
+}

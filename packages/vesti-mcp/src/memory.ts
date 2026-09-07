@@ -12,7 +12,7 @@
  * when the app's SQLite build supports it, unicode61 otherwise) is detected
  * from sqlite_master and the query plan adapts to it; when the FTS table is
  * unusable the query path degrades to an empty result instead of throwing.
- * Read-only, like every tool except the digest access bump.
+ * Read-only, like every MCP tool in this package.
  */
 
 import type { VestiDatabase } from './db.js';
@@ -40,7 +40,7 @@ function requireMemorySpace(db: VestiDatabase): void {
   if (!hasMemorySpace(db)) {
     throw new Error(
       'The memory space is not set up in this database yet (no memory_entries table — it arrives with schema v14). ' +
-        'Update the VESTI desktop app and open it once so migrations run, then try again.',
+        'Run `vesti setup` from a global @vesti/memory installation, or start the standalone capture runtime so migrations run, then try again.',
     );
   }
 }

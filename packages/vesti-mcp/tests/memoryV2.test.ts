@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { openVestiDb, type VestiDatabase } from '../src/db.js';
-import { bumpDigestAccess, vestiProjectBrief, vestiSearch } from '../src/tools.js';
+import { vestiProjectBrief, vestiSearch } from '../src/tools.js';
 import {
   createFixtureDb,
   upgradeFixtureToMemoryV2,
@@ -22,8 +22,8 @@ afterEach(() => {
   fixture.cleanup();
 });
 
-describe('memory v2: digest access tracking', () => {
-  it('bumps access_count for digests surfaced by vesti_search', () => {
+describe('memory v2: capture-owned digest access tracking', () => {
+  it('does not mutate access_count when vesti_search surfaces a digest', () => {
     upgradeFixtureToMemoryV2(fixture.dbPath);
     db = openVestiDb(fixture.dbPath);
 
@@ -38,13 +38,12 @@ describe('memory v2: digest access tracking', () => {
     const after = db
       .prepare('SELECT access_count FROM session_digests WHERE session_id = ?')
       .get(SESSION_A) as unknown as { access_count: number };
-    expect(after.access_count).toBe(1);
+    expect(after.access_count).toBe(0);
   });
 
-  it('silently skips the bump on a pre-v4 database (no access_count column)', () => {
+  it('searches a pre-v4 database without attempting a hidden write', () => {
     db = openVestiDb(fixture.dbPath);
-    expect(() => bumpDigestAccess(db, [SESSION_A])).not.toThrow();
-    // The whole search path must keep working too.
+    expect(db.pragma('query_only', { simple: true })).toBe(1);
     const result = vestiSearch(db, { query: 'transactional migrations' });
     expect(result.count).toBeGreaterThanOrEqual(1);
   });

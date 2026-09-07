@@ -6,14 +6,14 @@
  *   3. vesti_get_turns     — full message content for a handful of turns
  *   4. vesti_project_brief — L0 state card + L2 brief of a whole project
  *
- * Pure SQL + string logic over the database handle; every function is
- * unit-testable against a temporary database file. The single write in this
- * package is the session_digests.access_count bump in vesti_search (memory
- * v2 L1 access tracking); everything else is read-only.
+ * Pure read-only SQL + string logic over the database handle; every function
+ * is unit-testable against a temporary database file. Access accounting is
+ * owned by the capture/runtime side, never by MCP disclosure tools.
  */
 
 import type { VestiDatabase } from './db.js';
 import { recallSessions } from './recall.js';
+import { sanitizePlatformUserText } from './userText.js';
 
 // ==================== shared helpers ====================
 
@@ -141,24 +141,7 @@ export function vestiSearch(
     };
   });
 
-  bumpDigestAccess(db, results.map(entry => entry.session_id));
-
   return { query: args.query, count: results.length, results };
-}
-
-/**
- * Memory v2 L1 access tracking: every digest a search surfaces gets its
- * access_count bumped. This is the package's only write; a pre-v4 database
- * (no access_count column) silently skips it.
- */
-export function bumpDigestAccess(db: VestiDatabase, sessionIds: string[]): void {
-  if (sessionIds.length === 0) return;
-  try {
-    const stmt = db.prepare(
-      'UPDATE session_digests SET access_count = access_count + 1 WHERE session_id = ?',
-    );
-    for (const id of new Set(sessionIds)) stmt.run(id);
-  } catch { /* older schema or locked db — access tracking is best-effort */ }
 }
 
 // ==================== layer 2: vesti_timeline ====================
@@ -291,7 +274,9 @@ export function vestiTimeline(
       seq: t.sequence,
       started_at: iso(t.started_at),
       duration_ms: t.duration_ms,
-      user_intent: oneLine(t.user_input) || '(no user input recorded)',
+      user_intent:
+        oneLine(sanitizePlatformUserText(t.user_input ?? '', session.platform))
+        || '(no user input recorded)',
       tool_count: t.tool_execution_count ?? 0,
       input_tokens: t.input_tokens ?? 0,
       output_tokens: t.output_tokens ?? 0,
@@ -312,8 +297,12 @@ export interface TurnToolExecution {
 export interface TurnContent {
   seq: number;
   started_at: string | null;
+  /** Primary prompt followed by every same-turn follow-up, in source order. */
   user: string;
+  /** Final response: the last assistant_text, with commentary fallback. */
   assistant: string;
+  /** Commentary/progress and superseded assistant_text segments, in order. */
+  progress: string;
   thinking: string;
   tools: TurnToolExecution[];
 }
@@ -374,8 +363,8 @@ export function vestiGetTurns(
   }
 
   const messageStmt = db.prepare(
-    `SELECT source, content_text, content_thinking FROM messages
-     WHERE turn_id = ? AND is_sidechain = 0 ORDER BY sequence`,
+    `SELECT id, source, content_text, content_thinking FROM messages
+     WHERE turn_id = ? AND is_sidechain = 0 ORDER BY sequence, timestamp, rowid`,
   );
   const toolStmt = db.prepare(
     `SELECT tool_name, outcome, input_summary, output_summary, is_error
@@ -396,6 +385,7 @@ export function vestiGetTurns(
     if (truncated) break;
 
     const messages = messageStmt.all(turn.id) as unknown as Array<{
+      id: string;
       source: string;
       content_text: string | null;
       content_thinking: string | null;
@@ -408,18 +398,70 @@ export function vestiGetTurns(
       is_error: number | null;
     }>;
 
-    const joinParts = (parts: Array<string | null>): string =>
-      parts.filter((p): p is string => !!p && p.trim().length > 0).join('\n\n');
+    const uniqueParts = (parts: Array<string | null | undefined>): string[] => {
+      const seen = new Set<string>();
+      return parts.flatMap(part => {
+        const value = part?.trim() ?? '';
+        if (!value || seen.has(value)) return [];
+        seen.add(value);
+        return [value];
+      });
+    };
 
-    const user =
-      turn.user_input?.trim() ||
-      joinParts(messages.filter(m => m.source === 'user_input').map(m => m.content_text));
-    const assistant = joinParts(
-      messages.filter(m => m.source === 'assistant_text').map(m => m.content_text),
+    let userInputs = messages
+      .filter(message => message.source === 'user_input')
+      .map(message => sanitizePlatformUserText(message.content_text ?? '', session.platform))
+      .filter(Boolean);
+    const storedPrimary = sanitizePlatformUserText(
+      turn.user_input ?? '',
+      session.platform,
     );
-    const thinking = joinParts(
-      messages.filter(m => m.source === 'assistant_think').map(m => m.content_thinking),
+    if (userInputs.length === 0) {
+      userInputs = storedPrimary ? [storedPrimary] : [];
+    } else if (
+      storedPrimary
+      && !userInputs.some(text =>
+        text === storedPrimary
+        || text.startsWith(storedPrimary)
+        || storedPrimary.startsWith(text),
+      )
+    ) {
+      // Older/partial imports can retain the primary prompt only on turns
+      // while later follow-ups exist in messages. Keep both sources.
+      userInputs.unshift(storedPrimary);
+    }
+    const [primaryUser = '', ...followups] = userInputs;
+    const user = [
+      primaryUser,
+      ...followups.map((text, index) => `Follow-up ${index + 1}:\n${text}`),
+    ].filter(Boolean).join('\n\n');
+
+    const responseMessages = messages.filter(message =>
+      (message.source === 'assistant_text' || message.source === 'assistant_commentary')
+      && message.content_text?.trim(),
     );
+    const finalMessage =
+      responseMessages.filter(message => message.source === 'assistant_text').at(-1)
+      ?? responseMessages.at(-1);
+    const assistant = finalMessage?.content_text?.trim() ?? '';
+    const progress = uniqueParts(
+      messages.flatMap(message => {
+        if (message.id === finalMessage?.id) return [];
+        if (
+          message.source === 'assistant_commentary'
+          || message.source === 'progress'
+          || message.source === 'assistant_text'
+        ) {
+          return [message.content_text];
+        }
+        return [];
+      }),
+    ).filter(text => text !== assistant).join('\n\n');
+    const thinking = uniqueParts(
+      messages
+        .filter(message => message.source === 'assistant_think')
+        .map(message => message.content_thinking ?? message.content_text),
+    ).join('\n\n');
     const toolList: TurnToolExecution[] = tools.map(t => ({
       tool: t.tool_name,
       outcome: t.outcome ?? 'unknown',
@@ -431,6 +473,7 @@ export function vestiGetTurns(
     const turnChars =
       user.length +
       assistant.length +
+      progress.length +
       thinking.length +
       toolList.reduce(
         (sum, t) => sum + t.tool.length + (t.input_summary?.length ?? 0) + (t.output_summary?.length ?? 0),
@@ -448,9 +491,13 @@ export function vestiGetTurns(
       started_at: iso(turn.started_at),
       user: cut(user, budget),
       assistant: cut(assistant, Math.max(0, budget - user.length)),
+      progress: cut(
+        progress,
+        Math.max(0, budget - user.length - assistant.length),
+      ),
       thinking: cut(
         thinking,
-        Math.max(0, budget - user.length - assistant.length),
+        Math.max(0, budget - user.length - assistant.length - progress.length),
       ),
       tools: toolList,
     };
@@ -484,7 +531,7 @@ export interface ProjectBriefResult {
     last_active: string;
     updated_at: string;
   } | null;
-  /** L2 LLM-maintained brief (null until the desktop app generates one). */
+  /** L2 maintained brief (null until the capture/runtime pipeline generates one). */
   brief: {
     content_markdown: string;
     version: number;
@@ -600,7 +647,7 @@ export function vestiProjectBrief(
   if (!state && !brief) {
     throw new Error(
       `Project "${match.label ?? match.project_key}" has no memory layers yet — ` +
-        'open the VESTI desktop app and let a sync + digest pass finish first.',
+        'start the standalone VESTI capture runtime and let a sync + digest pass finish first.',
     );
   }
 

@@ -24,6 +24,8 @@ let db: VestiDatabase;
 beforeEach(() => {
   fixture = createFixtureDb();
   db = openVestiDb(fixture.dbPath);
+  // Several scenarios seed derived project layers after opening the fixture.
+  db.pragma('query_only = OFF');
 });
 
 afterEach(() => {

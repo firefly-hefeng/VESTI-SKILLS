@@ -20,13 +20,15 @@ afterEach(() => {
 describe('openVestiDb', () => {
   it('throws a friendly error when the database file is missing', () => {
     expect(() => openVestiDb(fixture.dbPath + '.missing')).toThrow(VestiDbNotFoundError);
-    expect(() => openVestiDb(fixture.dbPath + '.missing')).toThrow(/Run the VESTI/);
+    expect(() => openVestiDb(fixture.dbPath + '.missing'))
+      .toThrow(/standalone VESTI capture runtime/);
+    expect(() => openVestiDb(fixture.dbPath + '.missing'))
+      .toThrow(/vesti setup/);
   });
 
-  it('opens read-write so search can bump digest access counters (the only write)', () => {
-    // The write policy is package-level: only bumpDigestAccess issues writes.
-    expect(() => db.exec('CREATE TABLE IF NOT EXISTS _write_probe (id TEXT)')).not.toThrow();
-    db.exec('DROP TABLE IF EXISTS _write_probe');
+  it('opens the MCP connection in SQLite query_only mode', () => {
+    expect(db.pragma('query_only', { simple: true })).toBe(1);
+    expect(() => db.exec('CREATE TABLE _write_probe (id TEXT)')).toThrow(/readonly/i);
   });
 });
 
@@ -128,6 +130,95 @@ describe('vesti_get_turns', () => {
     expect(result.turns[1].tools).toEqual([]);
   });
 
+  it('preserves same-turn follow-ups, final response and ordered progress after cleanup', () => {
+    db.pragma('query_only = OFF');
+    const turnId = `${SESSION_B}-t1`;
+    const insert = db.prepare(
+      `INSERT INTO messages
+       (id, session_id, turn_id, source, sequence, role, content_text, timestamp, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+    const base = Date.UTC(2026, 0, 11, 12, 0, 0);
+    insert.run(
+      'm-b1-plugins',
+      SESSION_B,
+      turnId,
+      'user_input',
+      2,
+      'user',
+      '<recommended_plugins><plugin>noise</plugin></recommended_plugins>',
+      base + 100,
+      base + 100,
+    );
+    insert.run(
+      'm-b1-followup',
+      SESSION_B,
+      turnId,
+      'user_input',
+      3,
+      'user',
+      '# Files mentioned by the user:\n\n- form.png\n\n## My request:\nPlease reuse my saved phone number.\n<image src="transport"/>',
+      base + 200,
+      base + 200,
+    );
+    insert.run(
+      'm-b1-aborted',
+      SESSION_B,
+      turnId,
+      'user_input',
+      4,
+      'user',
+      '<turn_aborted/>',
+      base + 300,
+      base + 300,
+    );
+    insert.run(
+      'm-b1-commentary',
+      SESSION_B,
+      turnId,
+      'assistant_commentary',
+      5,
+      'assistant',
+      'I found the saved profile and am checking the form.',
+      base + 400,
+      base + 400,
+    );
+    insert.run(
+      'm-b1-progress',
+      SESSION_B,
+      turnId,
+      'progress',
+      6,
+      'assistant',
+      'Validated the phone-number format.',
+      base + 500,
+      base + 500,
+    );
+    insert.run(
+      'm-b1-final',
+      SESSION_B,
+      turnId,
+      'assistant_text',
+      7,
+      'assistant',
+      'The form is complete with your saved phone number.',
+      base + 600,
+      base + 600,
+    );
+    db.pragma('query_only = ON');
+
+    const result = vestiGetTurns(db, { session_id: SESSION_B, turn_ids: [1] });
+    const turn = result.turns[0];
+    expect(turn.user).toContain('help me deploy the blog to gh-pages');
+    expect(turn.user).toContain('Follow-up 1:\nPlease reuse my saved phone number.');
+    expect(turn.user).not.toMatch(/recommended_plugins|turn_aborted|Files mentioned|<image/);
+    expect(turn.assistant).toBe('The form is complete with your saved phone number.');
+    expect(turn.progress).toContain('sure, here is the plan');
+    expect(turn.progress).toContain('I found the saved profile');
+    expect(turn.progress).toContain('Validated the phone-number format');
+    expect(turn.progress).not.toContain(turn.assistant);
+  });
+
   it('supports an inclusive range selection', () => {
     const result = vestiGetTurns(db, { session_id: SESSION_A, range: { from: 2, to: 3 } });
     expect(result.turns.map(t => t.seq)).toEqual([2, 3]);
@@ -141,7 +232,7 @@ describe('vesti_get_turns', () => {
     expect(result.returned).toBeGreaterThanOrEqual(1);
     expect(result.returned).toBeLessThanOrEqual(3);
     const allText = result.turns
-      .map(t => t.user + t.assistant + t.thinking)
+      .map(t => t.user + t.assistant + t.progress + t.thinking)
       .join('');
     expect(allText.length).toBeLessThanOrEqual(600); // cap + cut marker slack
   });

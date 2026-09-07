@@ -31,9 +31,9 @@ await digest.enqueuePending();
 const hits = manager.recallSessions('transactional migrations', { topK: 8 });
 ```
 
-Not ported (still app-side): capture/parsing of agent transcripts, token-usage
-accounting, the v1 compatibility readers, vault/sync/export engines and the
-legacy FTS message search. See the source file headers for the exact cut list.
+Capture/parsing of source transcripts, token-usage accounting, Vault and sync
+remain outside this focused storage package. They are available without the
+desktop app through the sibling `@vesti/capture-runtime` package.
 
 ## Development
 

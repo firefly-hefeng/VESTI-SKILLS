@@ -7,6 +7,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import type { FileSearchTrace, SearchFilesArgs } from '@vesti/search-files-core';
 
 import type { VestiDatabase } from './db.js';
 import { vestiSearchFiles } from './files.js';
@@ -20,7 +21,7 @@ import { vestiGetTurns, vestiProjectBrief, vestiSearch, vestiTimeline } from './
  * competition.
  */
 const SERVER_INSTRUCTIONS = [
-  'VESTI exposes this machine’s captured AI-coding sessions (kimi-code, claude code, codex, cursor — all platforms, read-only).',
+  'VESTI exposes this machine’s captured coding sessions from Codex, Cursor, Kimi Code, Claude Code, Trae, Qoder and WorkBuddy (read-only).',
   'SESSION START: when your working directory may be a tracked project, call vesti_get_project_context with your cwd as paths[0] BEFORE asking the user for background — it returns the project’s state card, maintained brief, recent sessions, open questions and active-file timeline in one call. If it reports no match, proceed without VESTI.',
   'MERGE / CROSS-PROJECT WORK: pass every involved project path to vesti_get_project_context at once — besides per-project packs it returns cross-project links (shared files, shared topics, overlapping work windows).',
   'HANDOFF to another agent or session: call vesti_get_handoff_context, then assemble the handoff from its file anchors, open questions and verify-first hints; the receiving side must re-verify before trusting it.',
@@ -31,7 +32,7 @@ const SERVER_INSTRUCTIONS = [
 ].join('\n');
 
 const SEARCH_DESCRIPTION = [
-  'Layer 1 of 3 — search VESTI’s memory of past AI-coding sessions (claude code, codex, kimi-code, …).',
+  'Layer 1 of 3 — search VESTI’s memory of past sessions from Codex, Cursor, Kimi Code, Claude Code, Trae, Qoder and WorkBuddy.',
   'Returns up to topK session index entries (~100 tokens each): session_id, title, platform, project, time, digest one-liner, key topics, and a hit snippet.',
   'WORKFLOW: (1) call vesti_search with a few keywords; (2) call vesti_timeline on the most promising session_id to see its turn outline; (3) call vesti_get_turns only for the turns you actually need.',
   'Do NOT guess session ids — they come from this tool.',
@@ -46,7 +47,7 @@ const TIMELINE_DESCRIPTION = [
 ].join(' ');
 
 const GET_TURNS_DESCRIPTION = [
-  'Layer 3 of 3 — full message content for specific turns of a session (user input, assistant replies, tool-call summaries).',
+  'Layer 3 of 3 — full task content for specific turns: primary prompt plus same-turn follow-ups, final assistant reply, progress/commentary, thinking and tool-call summaries.',
   'Select turns by turn_ids (sequence numbers from vesti_timeline) or an inclusive {from,to} range. Output is capped at max_chars; when the cap is hit the response sets truncated=true and you should narrow the selection.',
   'This is the expensive layer — only fetch the turns vesti_timeline pointed to.',
 ].join(' ');
@@ -69,7 +70,7 @@ const HANDOFF_CONTEXT_DESCRIPTION = [
   'Lightweight handoff material aligned with the VESTI relay v2 schema — call before handing work to another agent/session or before /compact.',
   'Returns the project context block plus recent_user_messages (newest user intents across the project’s sessions), file_anchors (deterministic active-file timeline) and verify_first seeds (open questions to re-confirm, last failing steps to re-run) — every entry grounded in stored data, nothing invented.',
   'Resolve the project by session_id (its project), path, or neither (most recently active project).',
-  'Then assemble the handoff yourself following the relay v2 shape (goal / state / files / decisions / verification / verifyFirst / handoffPrompt); heavy transcript compression is the VESTI app relay pipeline’s job, not this tool’s.',
+  'Then assemble the handoff yourself following the relay v2 shape (goal / state / files / decisions / verification / verifyFirst / handoffPrompt); heavy transcript compression belongs to the capture/runtime relay pipeline, not this tool.',
 ].join(' ');
 
 const MEMORY_SEARCH_DESCRIPTION = [
@@ -90,10 +91,30 @@ const SEARCH_FILES_DESCRIPTION = [
   'Returns path, projects, up to 5 backing sessions, touch count and last_touched per file. Read the files with your own filesystem tools; drill into a backing session with vesti_timeline → vesti_get_turns when you need the surrounding context.',
 ].join(' ');
 
-export function createVestiMcpServer(db: VestiDatabase): Server {
+const READ_ONLY_TOOL_ANNOTATIONS = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false,
+} as const;
+
+export interface VestiMcpServerOptions {
+  /**
+   * Process-local instruction override used by controlled evaluations.
+   * It is never exposed as an MCP tool argument and production callers keep
+   * the product behavior contract above.
+   */
+  serverInstructions?: string;
+  /** Benchmark/debug override; not exposed in the public MCP input schema. */
+  fileSearchSessionRecallLimit?: number;
+  /** Out-of-band diagnostics; never serialized into the model-visible result. */
+  onFileSearchTrace?: (trace: FileSearchTrace) => void;
+}
+
+export function createVestiMcpServer(db: VestiDatabase, options: VestiMcpServerOptions = {}): Server {
   const server = new Server(
     { name: 'vesti-mcp', version: '0.1.0' },
-    { capabilities: { tools: {} }, instructions: SERVER_INSTRUCTIONS },
+    { capabilities: { tools: {} }, instructions: options.serverInstructions ?? SERVER_INSTRUCTIONS },
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -101,6 +122,7 @@ export function createVestiMcpServer(db: VestiDatabase): Server {
       {
         name: 'vesti_get_project_context',
         description: PROJECT_CONTEXT_DESCRIPTION,
+        annotations: READ_ONLY_TOOL_ANNOTATIONS,
         inputSchema: {
           type: 'object',
           properties: {
@@ -126,6 +148,7 @@ export function createVestiMcpServer(db: VestiDatabase): Server {
       {
         name: 'vesti_search',
         description: SEARCH_DESCRIPTION,
+        annotations: READ_ONLY_TOOL_ANNOTATIONS,
         inputSchema: {
           type: 'object',
           properties: {
@@ -145,6 +168,7 @@ export function createVestiMcpServer(db: VestiDatabase): Server {
       {
         name: 'vesti_timeline',
         description: TIMELINE_DESCRIPTION,
+        annotations: READ_ONLY_TOOL_ANNOTATIONS,
         inputSchema: {
           type: 'object',
           properties: {
@@ -168,6 +192,7 @@ export function createVestiMcpServer(db: VestiDatabase): Server {
       {
         name: 'vesti_get_turns',
         description: GET_TURNS_DESCRIPTION,
+        annotations: READ_ONLY_TOOL_ANNOTATIONS,
         inputSchema: {
           type: 'object',
           properties: {
@@ -201,6 +226,7 @@ export function createVestiMcpServer(db: VestiDatabase): Server {
       {
         name: 'vesti_project_brief',
         description: PROJECT_BRIEF_DESCRIPTION,
+        annotations: READ_ONLY_TOOL_ANNOTATIONS,
         inputSchema: {
           type: 'object',
           properties: {
@@ -215,6 +241,7 @@ export function createVestiMcpServer(db: VestiDatabase): Server {
       {
         name: 'vesti_get_handoff_context',
         description: HANDOFF_CONTEXT_DESCRIPTION,
+        annotations: READ_ONLY_TOOL_ANNOTATIONS,
         inputSchema: {
           type: 'object',
           properties: {
@@ -242,8 +269,10 @@ export function createVestiMcpServer(db: VestiDatabase): Server {
       {
         name: 'vesti_search_files',
         description: SEARCH_FILES_DESCRIPTION,
+        annotations: READ_ONLY_TOOL_ANNOTATIONS,
         inputSchema: {
           type: 'object',
+          additionalProperties: false,
           properties: {
             query: {
               type: 'string',
@@ -254,6 +283,10 @@ export function createVestiMcpServer(db: VestiDatabase): Server {
               description: 'Max file entries to return (default 10, max 25).',
               default: 10,
             },
+            project: {
+              type: 'string',
+              description: 'Optional project path or unambiguous project name/alias. Project hints at the end of query are also recognized.',
+            },
           },
           required: ['query'],
         },
@@ -261,6 +294,7 @@ export function createVestiMcpServer(db: VestiDatabase): Server {
       {
         name: 'vesti_memory_search',
         description: MEMORY_SEARCH_DESCRIPTION,
+        annotations: READ_ONLY_TOOL_ANNOTATIONS,
         inputSchema: {
           type: 'object',
           properties: {
@@ -293,6 +327,7 @@ export function createVestiMcpServer(db: VestiDatabase): Server {
       {
         name: 'vesti_memory_get',
         description: MEMORY_GET_DESCRIPTION,
+        annotations: READ_ONLY_TOOL_ANNOTATIONS,
         inputSchema: {
           type: 'object',
           properties: {
@@ -338,7 +373,19 @@ export function createVestiMcpServer(db: VestiDatabase): Server {
           payload = vestiGetHandoffContext(db, (args ?? {}) as Parameters<typeof vestiGetHandoffContext>[1]);
           break;
         case 'vesti_search_files':
-          payload = vestiSearchFiles(db, (args ?? {}) as { query: string; topK?: number });
+          {
+            const searchArgs = (args ?? {}) as unknown as SearchFilesArgs;
+            const result = vestiSearchFiles(db, {
+              ...searchArgs,
+              ...(options.fileSearchSessionRecallLimit != null
+                ? { sessionRecallLimit: options.fileSearchSessionRecallLimit }
+                : {}),
+              ...(options.onFileSearchTrace ? { includeTrace: true } : {}),
+            });
+            if (result.trace) options.onFileSearchTrace?.(result.trace);
+            const { trace: _trace, ...publicResult } = result;
+            payload = publicResult;
+          }
           break;
         case 'vesti_memory_search':
           payload = vestiMemorySearch(db, (args ?? {}) as Parameters<typeof vestiMemorySearch>[1]);

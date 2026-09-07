@@ -7,5 +7,6 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   target: 'node22',
+  noExternal: ['@vesti/search-files-core'],
   banner: { js: '#!/usr/bin/env node' },
 });

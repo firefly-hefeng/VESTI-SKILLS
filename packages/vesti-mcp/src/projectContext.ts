@@ -10,7 +10,7 @@
  *   vesti_get_handoff_context — light handoff material aligned with the
  *     app's relay v2 schema: the project block plus the newest user
  *     messages, file anchors and deterministic verify-first hints. Heavy
- *     transcript compression stays in the desktop app's relay pipeline;
+ *     transcript compression stays in the capture/runtime relay pipeline;
  *     this tool only ships raw, checkable anchors.
  *
  * Project key derivation is a port of capture-core's projectRegistry
@@ -26,6 +26,7 @@ import { createHash } from 'node:crypto';
 
 import type { VestiDatabase } from './db.js';
 import { resolveSession } from './tools.js';
+import { sanitizePlatformUserText } from './userText.js';
 
 // ==================== project key derivation (port of capture-core) ====================
 
@@ -88,25 +89,6 @@ function oneLine(text: string | null | undefined, max = 160): string {
   const cleaned = (text ?? '').replace(/\s+/g, ' ').trim();
   if (cleaned.length <= max) return cleaned;
   return `${cleaned.slice(0, max - 1)}…`;
-}
-
-/** Mirror of capture-core utils/injectedBlocks: machine-injected wrappers are
- * not the user's own words, so recent-message excerpts look past them. */
-const INJECTED_BLOCK_PATTERNS: RegExp[] = [
-  /<environment_context\b[^>]*>[\s\S]*?<\/environment_context>/g,
-  /<user_instructions\b[^>]*>[\s\S]*?<\/user_instructions>/g,
-  /<git-context\b[^>]*\/>/g,
-  /<git-context\b[^>]*>[\s\S]*?<\/git-context>/g,
-  /<timestamp>[\s\S]*?<\/timestamp>/g,
-  /<user_info>[\s\S]*?<\/user_info>/g,
-  /<system_notification>[\s\S]*?<\/system_notification>/g,
-  /<system_reminder>[\s\S]*?<\/system_reminder>/g,
-];
-
-function stripInjected(text: string): string {
-  let result = text;
-  for (const pattern of INJECTED_BLOCK_PATTERNS) result = result.replace(pattern, ' ');
-  return result.replace(/<\/?user_query>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 /** Column names of a table, for schema-version tolerance (fixture and
@@ -314,7 +296,7 @@ export interface ProjectContextBlock {
   platforms: string[];
   session_count: number;
   last_active: string | null;
-  /** Merged L0 card (null when the desktop app has not built one AND no
+  /** Merged L0 card (null when the capture/runtime pipeline has not built one AND no
    * digest fallback exists). */
   state: {
     one_liner: string;
@@ -628,7 +610,7 @@ export function vestiGetProjectContext(
       unmatched_paths: (args.paths ?? []).map(normalizeProjectPath).filter(Boolean),
       cross_project: null,
       hints: [
-        'VESTI has no captured sessions yet — run the VESTI desktop app (or CLI capture) and let a sync finish first.',
+        'VESTI has no captured sessions yet — start the standalone capture runtime and let a sync finish first.',
       ],
     };
   }
@@ -673,7 +655,7 @@ export function vestiGetProjectContext(
 
   if (projects.every(project => !project.state && !project.brief)) {
     hints.push(
-      'No L0/L2 memory layers yet (recent sessions are still listed) — open the VESTI desktop app and let a sync + digest pass finish to build them.',
+      'No L0/L2 memory layers yet (recent sessions are still listed) — start the standalone capture runtime and let a sync + digest pass finish to build them.',
     );
   }
 
@@ -741,7 +723,7 @@ export function vestiGetHandoffContext(
   const project = buildProjectBlock(db, basis, rows, digestsForSessions(db, rows.map(row => row.id)), args);
   const sessionIds = rows.map(row => row.id);
   const hints: string[] = [
-    'Assemble the actual handoff with the relay v2 schema (goal / state / files / decisions / verification / verifyFirst / handoffPrompt): fill goal, state and decisions from the sessions below — only the anchors here are machine-extracted. Heavy transcript compression lives in the VESTI app relay pipeline, not in this tool.',
+    'Assemble the actual handoff with the relay v2 schema (goal / state / files / decisions / verification / verifyFirst / handoffPrompt): fill goal, state and decisions from the sessions below — only the anchors here are machine-extracted. Heavy transcript compression lives in the capture/runtime relay pipeline, not in this tool.',
   ];
 
   const messageLimit = Math.max(1, Math.min(args.user_messages ?? HANDOFF_USER_MESSAGES_DEFAULT, HANDOFF_USER_MESSAGES_MAX));
@@ -750,7 +732,8 @@ export function vestiGetHandoffContext(
     try {
       const messageRows = db
         .prepare(
-          `SELECT m.session_id, m.content_text, m.timestamp, ws.title AS session_title
+          `SELECT m.session_id, m.content_text, m.timestamp,
+                  ws.title AS session_title, ws.platform
            FROM messages m JOIN work_sessions ws ON ws.id = m.session_id
            WHERE m.session_id IN (${sessionIds.map(() => '?').join(',')})
              AND m.source = 'user_input' AND m.content_text IS NOT NULL
@@ -761,13 +744,17 @@ export function vestiGetHandoffContext(
           content_text: string | null;
           timestamp: number;
           session_title: string;
+          platform: string;
         }>;
       recentUserMessages = messageRows
         .map(row => ({
           session_id: row.session_id,
           session_title: row.session_title || 'Untitled',
           timestamp: iso(row.timestamp),
-          text: oneLine(stripInjected(row.content_text ?? ''), 300),
+          text: oneLine(
+            sanitizePlatformUserText(row.content_text ?? '', row.platform),
+            300,
+          ),
         }))
         .filter(row => row.text)
         .slice(0, messageLimit);
