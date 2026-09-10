@@ -116,6 +116,22 @@ VESTI-SKILLS/
 
 ## 安装
 
+### 方式零：直接让你的 AI 工具装（最省事）
+
+把下面这段话原样发给你的 coding agent（Kimi Code / Claude Code / Codex 等，需授权其执行 shell 命令），它会自己 clone、拷贝到对应的 skills 目录并验证：
+
+```text
+请从 GitHub 安装 VESTI 技能包：克隆 https://github.com/firefly-hefeng/VESTI-SKILLS 到临时目录，把 skills/vesti-memory 和 skills/vesti-handoff 两个目录拷贝到当前工具的用户级 skills 目录（Kimi Code 是 ~/.kimi-code/skills/,Claude Code 是 ~/.claude/skills/,其他工具按各自 skills 目录约定）,完成后列出已安装的技能并告诉我需要重启还是开新会话生效。
+```
+
+English version:
+
+```text
+Install the VESTI skills from GitHub: clone https://github.com/firefly-hefeng/VESTI-SKILLS to a temp dir, copy skills/vesti-memory and skills/vesti-handoff into your user-level skills directory (~/.kimi-code/skills/ for Kimi Code, ~/.claude/skills/ for Claude Code, or your tool's equivalent), then list what you installed and tell me whether a restart or new session is needed.
+```
+
+装完开一个新会话即可生效（`vesti-memory` 另需本机 VESTI 桌面端或 `@vesti/mcp` 提供检索工具）。
+
 ### 方式一：直接从 GitHub 安装（推荐，无需 clone）
 
 **Kimi Code**（插件机制，一条命令；仓库根部的 `kimi.plugin.json` 即插件清单）：
