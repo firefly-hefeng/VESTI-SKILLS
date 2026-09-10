@@ -116,6 +116,25 @@ VESTI-SKILLS/
 
 ## 安装
 
+### 方式一：直接从 GitHub 安装（推荐，无需 clone）
+
+**Kimi Code**（插件机制，一条命令；仓库根部的 `kimi.plugin.json` 即插件清单）：
+
+```text
+/plugins install https://github.com/firefly-hefeng/VESTI-SKILLS
+```
+
+装完运行 `/reload`（或开新会话）生效，之后可自动触发，也可 `/skill:vesti-memory` / `/skill:vesti-handoff` 手动调用。
+
+**Claude Code**（插件市场机制；`.claude-plugin/marketplace.json` 即市场清单）：
+
+```text
+/plugin marketplace add firefly-hefeng/VESTI-SKILLS
+/plugin install vesti-skills@vesti-skills
+```
+
+### 方式二：手动拷贝（所有 agent 通用）
+
 ```bash
 git clone https://github.com/firefly-hefeng/VESTI-SKILLS.git
 ```
@@ -125,6 +144,8 @@ git clone https://github.com/firefly-hefeng/VESTI-SKILLS.git
 | **kimi-code** | `cp -r skills/<name> ~/.kimi-code/skills/` | `.kimi-code/skills/` |
 | **Claude Code** | `cp -r skills/<name> ~/.claude/skills/` | `.claude/skills/` |
 | **其他 agent** | 按其 skills/prompt 约定引入 `SKILL.md` 全文即可 | 同左 |
+
+> 依赖说明：`vesti-handoff` 独立可用；`vesti-memory` 需要本机运行 VESTI 桌面端（或独立部署 `@vesti/mcp`）提供 MCP 检索工具。
 
 ## 相关项目
 
