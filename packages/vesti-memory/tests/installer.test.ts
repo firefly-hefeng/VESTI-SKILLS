@@ -249,6 +249,12 @@ describe('JSON MCP registration', () => {
     { host: 'claude', label: 'Claude Code', expectedType: 'stdio' },
     { host: 'kimi-code', label: 'Kimi Code' },
     { host: 'cursor', label: 'Cursor', expectedType: 'stdio' },
+    { host: 'qoder', label: 'Qoder' },
+    { host: 'qoder-cli', label: 'Qoder CLI', expectedType: 'stdio' },
+    { host: 'workbuddy', label: 'WorkBuddy' },
+    { host: 'trae', label: 'Trae' },
+    { host: 'trae-cn', label: 'Trae CN' },
+    { host: 'trae-solo-cn', label: 'TRAE SOLO CN' },
   ];
 
   it.each(jsonHosts)('merge-preserves $label config, backs it up, and is idempotent', async ({ host, expectedType }) => {

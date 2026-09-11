@@ -30,6 +30,12 @@ vesti setup --host codex
 vesti setup --host claude
 vesti setup --host kimi-code
 vesti setup --host cursor
+vesti setup --host qoder
+vesti setup --host qoder-cli
+vesti setup --host workbuddy
+vesti setup --host trae
+vesti setup --host trae-cn
+vesti setup --host trae-solo-cn
 vesti setup --host all --dry-run
 ```
 
@@ -57,6 +63,24 @@ selected client's user configuration:
 | Claude Code | `~/.claude/skills/vesti-memory` | `~/.claude.json`, `mcpServers.vesti` |
 | Kimi Code | `~/.kimi-code/skills/vesti-memory` | `~/.kimi-code/mcp.json`, `mcpServers.vesti` |
 | Cursor | `~/.cursor/skills/vesti-memory` | `~/.cursor/mcp.json`, `mcpServers.vesti` |
+| Qoder IDE | `~/.qoder/skills/vesti-memory` | `<user-data>/Qoder/SharedClientCache/mcp.json` |
+| Qoder CLI | `~/.qoder/skills/vesti-memory` | `~/.qoder/settings.json`, `mcpServers.vesti` |
+| WorkBuddy | `~/.workbuddy/skills/vesti-memory` | `~/.workbuddy/mcp.json`, `mcpServers.vesti` |
+| Trae | `~/.trae/skills/vesti-memory` | `<user-data>/Trae/User/mcp.json` |
+| Trae CN | `~/.trae-cn/skills/vesti-memory` | `<user-data>/Trae CN/User/mcp.json` |
+| TRAE SOLO CN | `~/.trae-cn/skills/vesti-memory` | `<user-data>/TRAE SOLO CN/User/mcp.json` |
+
+`<user-data>` is `%APPDATA%` on Windows, `~/Library/Application Support`
+on macOS, and `$XDG_CONFIG_HOME` (default `~/.config`) on Linux.
+Desktop editions are detected from their existing user-data directories.
+Qoder CLI detection requires `~/.qoder/settings.json`; use `--host qoder-cli`
+explicitly before that file exists. Its default `.qoder` layout is supported;
+custom `QODER_CONFIG_DIR` layouts are not yet handled. QoderWork session capture
+does not imply automatic QoderWork MCP registration.
+
+All seven source families are scanned regardless of which host is selected.
+Config installation is covered by isolated merge, idempotency, dry-run and
+discovery tests; these tests do not replace in-client tool/Skill acceptance checks.
 
 The operation is idempotent. Existing configuration is backed up before a
 change, unrelated keys and MCP servers are preserved, and malformed or

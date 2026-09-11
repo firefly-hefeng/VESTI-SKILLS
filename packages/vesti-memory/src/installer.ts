@@ -2,7 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { constants as fsConstants, promises as fs } from 'node:fs';
 import path from 'node:path';
 
-export type SetupHost = 'codex' | 'claude' | 'kimi-code' | 'cursor';
+export const SETUP_HOSTS = [
+  'codex', 'claude', 'kimi-code', 'cursor', 'qoder', 'qoder-cli',
+  'workbuddy', 'trae', 'trae-cn', 'trae-solo-cn',
+] as const;
+export type SetupHost = typeof SETUP_HOSTS[number];
 
 export interface McpLaunch {
   command: string;
@@ -13,6 +17,8 @@ export interface McpLaunch {
 
 export interface HostEnvironment {
   KIMI_CODE_HOME?: string;
+  APPDATA?: string;
+  XDG_CONFIG_HOME?: string;
 }
 
 export interface HostStatus {
@@ -58,6 +64,7 @@ interface ConfigEdit {
 interface HostSpec {
   host: SetupHost;
   label: string;
+  jsonType?: boolean;
   configPath(homeDir: string, environment: HostEnvironment): string;
   skillPath(homeDir: string, environment: HostEnvironment): string;
   detected(homeDir: string, environment: HostEnvironment): Promise<boolean>;
@@ -454,6 +461,36 @@ function kimiCodeRoot(homeDir: string, environment: HostEnvironment): string {
   return configured ? path.resolve(configured) : path.join(homeDir, '.kimi-code');
 }
 
+/** Resolve desktop user data without consulting ambient environment in tests. */
+export function desktopConfigRoot(
+  homeDir: string,
+  environment: HostEnvironment = {},
+  platform: NodeJS.Platform = process.platform,
+): string {
+  if (platform === 'win32') return environment.APPDATA?.trim()
+    ? path.resolve(environment.APPDATA.trim()) : path.join(homeDir, 'AppData', 'Roaming');
+  if (platform === 'darwin') return path.join(homeDir, 'Library', 'Application Support');
+  return environment.XDG_CONFIG_HOME?.trim()
+    ? path.resolve(environment.XDG_CONFIG_HOME.trim()) : path.join(homeDir, '.config');
+}
+
+function desktopHost(
+  host: SetupHost,
+  label: string,
+  product: string,
+  skillHome: string,
+  configFolder = 'User',
+): HostSpec {
+  return {
+    host,
+    label,
+    configPath: (home, env) => path.join(desktopConfigRoot(home, env), product, configFolder, 'mcp.json'),
+    skillPath: home => path.join(home, skillHome, 'skills', 'vesti-memory'),
+    detected: async (home, env) => exists(path.join(desktopConfigRoot(home, env), product)),
+    editConfig: (previous, launch) => editJsonConfig(label, previous, launch, false),
+  };
+}
+
 const HOSTS: Record<SetupHost, HostSpec> = {
   codex: {
     host: 'codex',
@@ -467,6 +504,7 @@ const HOSTS: Record<SetupHost, HostSpec> = {
   claude: {
     host: 'claude',
     label: 'Claude Code',
+    jsonType: true,
     configPath: home => path.join(home, '.claude.json'),
     skillPath: home => path.join(home, '.claude', 'skills', 'vesti-memory'),
     detected: async home => (
@@ -485,11 +523,34 @@ const HOSTS: Record<SetupHost, HostSpec> = {
   cursor: {
     host: 'cursor',
     label: 'Cursor',
+    jsonType: true,
     configPath: home => path.join(home, '.cursor', 'mcp.json'),
     skillPath: home => path.join(home, '.cursor', 'skills', 'vesti-memory'),
     detected: async home => exists(path.join(home, '.cursor')),
     editConfig: (previous, launch) => editJsonConfig('Cursor', previous, launch, true),
   },
+  qoder: desktopHost('qoder', 'Qoder', 'Qoder', '.qoder', 'SharedClientCache'),
+  'qoder-cli': {
+    host: 'qoder-cli',
+    label: 'Qoder CLI',
+    jsonType: true,
+    configPath: home => path.join(home, '.qoder', 'settings.json'),
+    skillPath: home => path.join(home, '.qoder', 'skills', 'vesti-memory'),
+    // The IDE also creates .qoder; do not mistake its presence for CLI setup.
+    detected: async home => exists(path.join(home, '.qoder', 'settings.json')),
+    editConfig: (previous, launch) => editJsonConfig('Qoder CLI', previous, launch, true),
+  },
+  workbuddy: {
+    host: 'workbuddy',
+    label: 'WorkBuddy',
+    configPath: home => path.join(home, '.workbuddy', 'mcp.json'),
+    skillPath: home => path.join(home, '.workbuddy', 'skills', 'vesti-memory'),
+    detected: async home => exists(path.join(home, '.workbuddy')),
+    editConfig: (previous, launch) => editJsonConfig('WorkBuddy', previous, launch, false),
+  },
+  trae: desktopHost('trae', 'Trae', 'Trae', '.trae'),
+  'trae-cn': desktopHost('trae-cn', 'Trae CN', 'Trae CN', '.trae-cn'),
+  'trae-solo-cn': desktopHost('trae-solo-cn', 'TRAE SOLO CN', 'TRAE SOLO CN', '.trae-cn'),
 };
 
 async function exists(filePath: string): Promise<boolean> {
@@ -652,7 +713,7 @@ function withManualSteps(edit: ConfigEdit, spec: HostSpec, launch: McpLaunch, co
     ...edit,
     manualSteps: spec.host === 'codex'
       ? codexManualSteps(configPath, launch)
-      : jsonManualSteps(configPath, launch, spec.host !== 'kimi-code'),
+      : jsonManualSteps(configPath, launch, spec.jsonType ?? false),
   };
 }
 

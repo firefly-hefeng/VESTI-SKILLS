@@ -2,7 +2,7 @@
 
 # VESTI Skills
 
-**让本地会话记忆在 Codex、Claude Code、Kimi Code 和 Cursor 之间持续复用。**
+**让本地会话记忆在 Codex、Claude Code、Kimi Code、Cursor、Qoder、WorkBuddy 和 Trae 之间持续复用。**
 
 VESTI 提供一套可独立运行的本地记忆链路：后台采集会话，统一写入 SQLite，
 再通过只读 MCP 工具和 Skill 把需要的上下文交给当前使用的编程助手。
@@ -50,8 +50,7 @@ flowchart LR
 `setup` 不会安装操作系统开机启动项。它会为当前登录会话启动后台 daemon；以后客户端启动
 VESTI MCP 时也会再次确认 daemon 已运行。
 
-当前安装器可自动写入 Codex、Claude Code、Kimi Code 和 Cursor 的 Skill/MCP 配置；
-独立采集 runtime 还会读取 Trae、Qoder 和 WorkBuddy 的本地会话记录。Trae 当前只读取旧版可解析的 `state.vscdb`；新版加密 `ModularData/ai-agent/database.db` 不在支持范围内。
+当前安装器可自动写入 Codex、Claude Code、Kimi Code、Cursor、Qoder、WorkBuddy 和 Trae 的 Skill/MCP 配置，采集 runtime 默认检查这 7 类本地会话来源。Trae 当前只读取旧版可解析的 `state.vscdb`；新版加密 `ModularData/ai-agent/database.db` 不在支持范围内。
 
 完整的进程、数据路径、降级和安全边界见
 [无 App 记忆运行时说明](docs/standalone-memory-runtime.md)。
@@ -89,6 +88,9 @@ vesti setup --host codex
 vesti setup --host claude
 vesti setup --host kimi-code
 vesti setup --host cursor
+vesti setup --host qoder
+vesti setup --host workbuddy
+vesti setup --host trae
 ```
 
 `setup` 可重复执行。它只新增或更新 VESTI 自己的配置项，保留其他 MCP 配置；修改已有配置前会创建备份。
@@ -160,6 +162,14 @@ Install VESTI following the README on the feat/standalone-memory-runtime branch 
 | Claude Code | `~/.claude/skills/vesti-memory/` | `~/.claude.json` 的 `mcpServers.vesti` | `setup --host claude` |
 | Kimi Code | `~/.kimi-code/skills/vesti-memory/` | `~/.kimi-code/mcp.json` 的 `mcpServers.vesti` | `setup --host kimi-code` |
 | Cursor | `~/.cursor/skills/vesti-memory/` | `~/.cursor/mcp.json` 的 `mcpServers.vesti` | `setup --host cursor` |
+| Qoder 桌面版 | `~/.qoder/skills/vesti-memory/` | `<用户数据根>/Qoder/SharedClientCache/mcp.json` | `setup --host qoder` |
+| Qoder CLI | `~/.qoder/skills/vesti-memory/` | `~/.qoder/settings.json` 的 `mcpServers.vesti` | `setup --host qoder-cli` |
+| WorkBuddy | `~/.workbuddy/skills/vesti-memory/` | `~/.workbuddy/mcp.json` 的 `mcpServers.vesti` | `setup --host workbuddy` |
+| Trae | `~/.trae/skills/vesti-memory/` | `<用户数据根>/Trae/User/mcp.json` | `setup --host trae` |
+| Trae CN | `~/.trae-cn/skills/vesti-memory/` | `<用户数据根>/Trae CN/User/mcp.json` | `setup --host trae-cn` |
+| TRAE SOLO CN | `~/.trae-cn/skills/vesti-memory/` | `<用户数据根>/TRAE SOLO CN/User/mcp.json` | `setup --host trae-solo-cn` |
+
+用户数据根在 Windows 为 `%APPDATA%`，macOS 为 `~/Library/Application Support`，Linux 为 `$XDG_CONFIG_HOME`（默认 `~/.config`）。Qoder 桌面版与 CLI 的 MCP 路径不同；安装器按实际存在的用户配置目录识别，不要求用户手填 JSON。Qoder CLI 使用默认 `~/.qoder` 布局，暂不处理 `QODER_CONFIG_DIR` 自定义布局。
 
 不带 `--host` 等同于 `--host all`：只配置在当前用户目录中检测到的客户端。即使未被自动检测，
 也可以通过显式 `--host` 完成配置。
@@ -198,7 +208,7 @@ flowchart LR
 
 | 路径 | 包或 Skill | 职责 |
 |---|---|---|
-| [`packages/vesti-memory`](packages/vesti-memory/README.md) | `@vesti/memory` | 一体化安装与诊断 CLI；配置四个客户端、安装 Skill、注册 MCP、管理 daemon |
+| [`packages/vesti-memory`](packages/vesti-memory/README.md) | `@vesti/memory` | 一体化安装与诊断 CLI；配置七类客户端及版本变体、安装 Skill、注册 MCP、管理 daemon |
 | [`packages/vesti-capture-runtime`](packages/vesti-capture-runtime/README.md) | `@vesti/capture-runtime` | 无界面的本地采集引擎、单写者 daemon 和轻量 IPC client |
 | [`packages/vesti-mcp`](packages/vesti-mcp/README.md) | `@vesti/mcp` | 只读 stdio MCP server，提供会话、项目、记忆空间与文件检索工具 |
 | [`packages/vesti-memory-core`](packages/vesti-memory-core/README.md) | `@vesti/memory-core` | 可复用的 SQLite schema、迁移、记忆整理和检索原语 |

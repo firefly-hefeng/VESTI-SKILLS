@@ -6,6 +6,7 @@ import { promises as fs } from 'node:fs';
 import {
   inspectHost,
   installHost,
+  SETUP_HOSTS,
   type HostStatus,
   type McpLaunch,
   type SetupHost,
@@ -58,7 +59,7 @@ interface ParsedCli {
 const HELP = `VESTI standalone memory
 
 Usage:
-  vesti setup [--host codex|claude|kimi-code|cursor|all] [--dry-run]
+  vesti setup [--host ${SETUP_HOSTS.join('|')}|all] [--dry-run]
   vesti status
   vesti sync [--dry-run]
   vesti doctor
@@ -104,7 +105,8 @@ function resolveMcpEntry(env: NodeJS.ProcessEnv): string | null {
 }
 
 function resolveContext(input: CliContext): ResolvedContext {
-  const env = input.env ?? process.env;
+  // An explicitly isolated home must not discover/write real desktop profiles.
+  const env = input.env ?? (input.homeDir ? {} : process.env);
   return {
     homeDir: input.homeDir ?? os.homedir(),
     assetDir: input.assetDir ?? path.join(packageRoot(), 'assets', 'vesti-memory'),
@@ -137,6 +139,7 @@ function parseCli(argv: string[]): ParsedCli {
     if (value === '--host') {
       const selected = argv[++index];
       const aliases: Record<string, ParsedCli['host']> = {
+        ...Object.fromEntries(SETUP_HOSTS.map(value => [value, value])),
         codex: 'codex',
         claude: 'claude',
         'claude-code': 'claude',
@@ -146,7 +149,7 @@ function parseCli(argv: string[]): ParsedCli {
         all: 'all',
       };
       if (!selected || !aliases[selected]) {
-        throw new Error('--host must be codex, claude, kimi-code, cursor, or all');
+        throw new Error(`--host must be ${SETUP_HOSTS.join(', ')}, or all`);
       }
       host = aliases[selected];
       continue;
@@ -160,7 +163,7 @@ function parseCli(argv: string[]): ParsedCli {
 }
 
 function selectedHosts(host: ParsedCli['host']): SetupHost[] {
-  if (host === 'all') return ['codex', 'claude', 'kimi-code', 'cursor'];
+  if (host === 'all') return [...SETUP_HOSTS];
   return [host];
 }
 
@@ -244,7 +247,7 @@ async function commandSetup(parsed: ParsedCli, context: ResolvedContext): Promis
     hosts = statuses.filter(status => status.detected).map(status => status.host);
     if (hosts.length === 0) {
       context.io.error(
-        'No supported client was detected. Use --host codex, claude, kimi-code, or cursor to install explicitly.',
+        `No supported client was detected. Use --host ${SETUP_HOSTS.join(', ')} to install explicitly.`,
       );
       return 1;
     }
@@ -284,12 +287,9 @@ async function commandSetup(parsed: ParsedCli, context: ResolvedContext): Promis
 
 async function collectStatuses(context: ResolvedContext): Promise<HostStatus[]> {
   const launch = mcpLaunch(context);
-  return Promise.all([
-    inspectHost('codex', context.homeDir, context.assetDir, launch, context.env),
-    inspectHost('claude', context.homeDir, context.assetDir, launch, context.env),
-    inspectHost('kimi-code', context.homeDir, context.assetDir, launch, context.env),
-    inspectHost('cursor', context.homeDir, context.assetDir, launch, context.env),
-  ]);
+  return Promise.all(SETUP_HOSTS.map(host => (
+    inspectHost(host, context.homeDir, context.assetDir, launch, context.env)
+  )));
 }
 
 function renderRuntimeStatus(value: unknown): string {

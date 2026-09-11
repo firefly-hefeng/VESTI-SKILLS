@@ -150,8 +150,19 @@ WSL 来源身份同时包含发行版和 Linux 用户：`wsl:<规范化发行版
 - Claude Code
 - Kimi Code
 - Cursor
+- Qoder 桌面版与 Qoder CLI
+- WorkBuddy
+- Trae、Trae CN 与 TRAE SOLO CN
 
-这份列表与“默认采集源”不同。例如，运行时可以采集 Qoder、Trae 和 WorkBuddy，但当前 setup CLI 不会自动修改它们的 Skill/MCP 宿主配置；如宿主兼容 stdio MCP，仍需按其实际配置格式手动接入并单独验证。
+七类工具统一使用 `setup`：发现现有用户配置、安装 Skill、合并 MCP 配置，并为目标数据库启动一个共享采集进程。`--host` 只控制写入哪个客户端的配置，不限制采集源。桌面版与 CLI 的路径差异由安装器处理，具体路径见 [安装器说明](../packages/vesti-memory/README.md#what-setup-changes)。
+
+自动发现依赖已存在的用户配置目录；首次使用前可显式指定 `--host`。Qoder CLI 当前使用默认 `~/.qoder` 布局。采集支持依然受源格式约束，自动配置 Trae 不代表能够读取新版加密会话。
+
+### 6.3 与 App 捕获实现的对齐范围
+
+本次核对以 App `origin/main` 的 `7be11a9` 为基线。Qoder、WorkBuddy 的 adapter/parser 与独立运行时内容一致（忽略换行符）；Trae parser 一致，独立版额外处理 WAL/SHM 变化。两边默认启用的七类会话来源一致，Trae 新版加密存储也都不在当前解析范围内。
+
+此次补齐的是客户端自动配置入口，不是重新实现一遍已有采集器。独立运行时与 App 仍有不同的进程生命周期和写入协调方式，不能据此认定两套进程可以同时写同一个数据库。新增客户端配置经过隔离测试；每款客户端实际加载 MCP/Skill 的端内验收需要在对应软件中完成。
 
 ## 7. 单实例守护与本地 IPC
 
