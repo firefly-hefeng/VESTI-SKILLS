@@ -1,0 +1,15 @@
+{
+  "name": "vesti-skills",
+  "version": "0.1.0",
+  "description": "Working-memory skills for coding agents: recall past sessions and hand off work across agents. vesti-memory requires a local VESTI instance (or @vesti/mcp); vesti-handoff works standalone.",
+  "skills": "./skills/",
+  "homepage": "https://github.com/firefly-hefeng/VESTI-SKILLS",
+  "license": "MIT",
+  "keywords": ["memory", "handoff", "agent", "vesti"],
+  "interface": {
+    "displayName": "VESTI Skills",
+    "shortDescription": "Memory recall & structured handoff for coding agents",
+    "developerName": "Vesti",
+    "websiteURL": "https://vesti.world"
+  }
+}

@@ -115,6 +115,41 @@ node packages/vesti-memory/dist/cli.js doctor
 
 安装器会把当前仓库中构建产物的绝对路径写入客户端配置，请把仓库放在长期保留的目录。移动目录或更新 Skill 后，重新运行 `setup`，再重启或重新加载客户端。
 
+### 让 Agent 安装配套环境
+
+也可以把下面这段话发给当前 coding agent，并授权它执行安装命令：
+
+```text
+请按 https://github.com/firefly-hefeng/VESTI-SKILLS 的 feat/standalone-memory-runtime 分支 README 安装 VESTI。把仓库克隆到长期保留的目录，检查 Node.js 版本，使用固定版本的 pnpm 安装依赖并构建，然后为当前客户端执行 setup、status 和 doctor。保留已有的其他 MCP 配置，完成后告诉我是否需要重启客户端。
+```
+
+English version:
+
+```text
+Install VESTI following the README on the feat/standalone-memory-runtime branch of https://github.com/firefly-hefeng/VESTI-SKILLS. Clone into a permanent directory, check Node.js, install and build with the pinned pnpm version, then run setup for this client, status and doctor. Preserve other MCP settings and tell me whether a client restart is needed.
+```
+
+### 只安装 Skill 的插件入口
+
+远程默认分支也提供插件清单。以下入口安装 Skill，不替代上面的独立采集服务和 MCP 安装；`vesti-handoff` 可独立使用，`vesti-memory` 需要配套 MCP 提供历史检索。
+
+**Kimi Code**（仓库根目录 `kimi.plugin.json`）：
+
+```text
+/plugins install https://github.com/firefly-hefeng/VESTI-SKILLS
+```
+
+安装后运行 `/reload` 或新开会话，也可用 `/skill:vesti-memory` 或 `/skill:vesti-handoff` 调用。
+
+**Claude Code**（`.claude-plugin/marketplace.json`）：
+
+```text
+/plugin marketplace add firefly-hefeng/VESTI-SKILLS
+/plugin install vesti-skills@vesti-skills
+```
+
+其他客户端也可手动把 `skills/vesti-memory` 和 `skills/vesti-handoff` 复制到各自的用户级 Skill 目录，然后重新加载客户端。若已经通过 `setup` 安装 `vesti-memory`，无需再重复安装同一 Skill。
+
 ## 支持的客户端
 
 `@vesti/memory` 会按每个客户端的真实格式注册同一个只读 stdio MCP，并安装配套 Skill：

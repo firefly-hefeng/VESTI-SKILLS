@@ -1,0 +1,17 @@
+{
+  "name": "vesti-skills",
+  "owner": {
+    "name": "Vesti",
+    "url": "https://github.com/firefly-hefeng"
+  },
+  "plugins": [
+    {
+      "name": "vesti-skills",
+      "source": "./",
+      "description": "Working-memory skills for coding agents: recall past sessions (vesti-memory, requires local VESTI / @vesti/mcp) and structured handoff (vesti-handoff, standalone).",
+      "version": "0.1.0",
+      "license": "MIT",
+      "homepage": "https://github.com/firefly-hefeng/VESTI-SKILLS"
+    }
+  ]
+}
