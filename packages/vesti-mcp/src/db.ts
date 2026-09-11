@@ -38,7 +38,7 @@ export class VestiDbNotFoundError extends Error {
   constructor(dbPath: string) {
     super(
       `VESTI database not found at ${dbPath}.\n` +
-        'Start the standalone VESTI capture runtime, or install `@vesti/memory` globally and run `vesti setup`; ' +
+        'Build the VESTI-SKILLS repository and run `node packages/vesti-memory/dist/cli.js setup` to start standalone capture; ' +
         'you can also point VESTI_DB_PATH at an existing vesti.db.',
     );
     this.name = 'VestiDbNotFoundError';

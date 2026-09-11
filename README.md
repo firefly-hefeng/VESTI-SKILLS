@@ -100,7 +100,7 @@ vesti setup --host trae
 ### npm 发布前从源码运行
 
 ```bash
-git clone --branch feat/standalone-memory-runtime --single-branch https://github.com/firefly-hefeng/VESTI-SKILLS.git
+git clone --branch main --single-branch https://github.com/firefly-hefeng/VESTI-SKILLS.git
 cd VESTI-SKILLS
 
 corepack enable
@@ -113,7 +113,7 @@ node packages/vesti-memory/dist/cli.js sync
 node packages/vesti-memory/dist/cli.js doctor
 ```
 
-仓库固定使用 pnpm 10.34.4。以上命令明确拉取独立运行版本所在分支；在该分支合并前，默认分支不包含完整安装链路。源码发生变化后，请重新执行 `corepack pnpm build` 再运行 CLI。
+仓库固定使用 pnpm 10.34.4。`main` 包含独立采集、MCP 和 Skill 的完整安装链路。源码发生变化后，请重新执行 `corepack pnpm build` 再运行 CLI。
 
 安装器会把当前仓库中构建产物的绝对路径写入客户端配置，请把仓库放在长期保留的目录。移动目录或更新 Skill 后，重新运行 `setup`，再重启或重新加载客户端。
 
@@ -122,13 +122,13 @@ node packages/vesti-memory/dist/cli.js doctor
 也可以把下面这段话发给当前 coding agent，并授权它执行安装命令：
 
 ```text
-请按 https://github.com/firefly-hefeng/VESTI-SKILLS 的 feat/standalone-memory-runtime 分支 README 安装 VESTI。把仓库克隆到长期保留的目录，检查 Node.js 版本，使用固定版本的 pnpm 安装依赖并构建，然后为当前客户端执行 setup、status 和 doctor。保留已有的其他 MCP 配置，完成后告诉我是否需要重启客户端。
+请按 https://github.com/firefly-hefeng/VESTI-SKILLS 的 main 分支 README 安装 VESTI。把仓库克隆到长期保留的目录，检查 Node.js 版本，使用固定版本的 pnpm 安装依赖并构建，然后为当前客户端执行 setup、status 和 doctor。保留已有的其他 MCP 配置，完成后告诉我是否需要重启客户端。
 ```
 
 English version:
 
 ```text
-Install VESTI following the README on the feat/standalone-memory-runtime branch of https://github.com/firefly-hefeng/VESTI-SKILLS. Clone into a permanent directory, check Node.js, install and build with the pinned pnpm version, then run setup for this client, status and doctor. Preserve other MCP settings and tell me whether a client restart is needed.
+Install VESTI following the README on the main branch of https://github.com/firefly-hefeng/VESTI-SKILLS. Clone into a permanent directory, check Node.js, install and build with the pinned pnpm version, then run setup for this client, status and doctor. Preserve other MCP settings and tell me whether a client restart is needed.
 ```
 
 ### 只安装 Skill 的插件入口

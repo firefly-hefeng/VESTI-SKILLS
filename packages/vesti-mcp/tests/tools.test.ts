@@ -21,9 +21,9 @@ describe('openVestiDb', () => {
   it('throws a friendly error when the database file is missing', () => {
     expect(() => openVestiDb(fixture.dbPath + '.missing')).toThrow(VestiDbNotFoundError);
     expect(() => openVestiDb(fixture.dbPath + '.missing'))
-      .toThrow(/standalone VESTI capture runtime/);
+      .toThrow(/standalone capture/);
     expect(() => openVestiDb(fixture.dbPath + '.missing'))
-      .toThrow(/vesti setup/);
+      .toThrow(/node packages\/vesti-memory\/dist\/cli\.js setup/);
   });
 
   it('opens the MCP connection in SQLite query_only mode', () => {
