@@ -4,9 +4,9 @@
 
 **让本地会话记忆在 Codex、Claude Code、Kimi Code、Cursor、Qoder、WorkBuddy 和 Trae 之间持续复用。**
 
-VESTI 提供一套可独立运行的本地记忆链路：后台采集会话，统一写入 SQLite，
-再通过只读 MCP 工具和 Skill 把需要的上下文交给当前使用的编程助手。
-VESTI App 是可选的可视化界面，不是采集、检索或使用 Skill 的前置条件。
+VESTI 是一套跨 Agent 的本地记忆工具。它在后台整理已有的会话记录，
+让当前使用的编程助手能查到之前的讨论、决策和相关文件，接着往下做。
+采集服务、MCP 和 Skill 可以独立安装和运行。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/firefly-hefeng/VESTI-SKILLS/actions/workflows/ci.yml/badge.svg)](https://github.com/firefly-hefeng/VESTI-SKILLS/actions/workflows/ci.yml)
@@ -25,79 +25,21 @@ VESTI 把这些分散在本机的历史会话整理成一份共享记忆。安�
 同一套 MCP 工具检索历史，`vesti-memory` Skill 则指导客户端先查索引、再按需读取原文，
 避免一次塞入大量无关上下文。
 
-## 当前架构
+你可以用它：
 
-```mermaid
-flowchart LR
-    A["本地会话来源<br/>Codex · Claude Code · Kimi Code · Cursor<br/>Trae · Qoder · WorkBuddy"]
-    B["@vesti/capture-runtime<br/>每目标数据库一个 daemon · standalone 单写者"]
-    C["本地 SQLite<br/>~/.vesti/db/vesti.db"]
-    D["@vesti/mcp<br/>只读 stdio MCP server"]
-    E["vesti-memory Skill<br/>渐进召回与披露规则"]
-    F["当前客户端"]
-    G["VESTI App<br/>可选 UI"]
+- 换一个 Agent 继续同一项目，查清之前确定的方案和未完成的工作。
+- 新开会话时复用已有背景，减少反复复制历史对话。
+- 根据讨论中的线索定位文件，核对当时为什么这样修改。
+- 查找过去用过的信息和约定，并回到原始会话确认。
 
-    A --> B --> C --> D --> E --> F
-    C -.浏览与管理.-> G
-```
-
-- `@vesti/capture-runtime` 负责发现本地会话来源、首次增量同步、文件变化监听和定期补偿扫描；每个目标数据库由一个 standalone daemon 串行写入。
-- SQLite 是默认的本地事实源。数据库、原始记录备份和运行日志默认位于 `~/.vesti/`。
-- `@vesti/mcp` 以 stdio 方式向客户端提供检索工具，并以只读方式访问数据库；启动 MCP 时会连接或拉起采集 daemon。
-- `vesti-memory` Skill 规定何时检索、如何逐层深入，以及如何处理低置信度结果。Skill 本身不采集数据，也不直接读取数据库。
-- VESTI App 只是一种可选的图形界面。没有安装或没有打开 App 时，独立 runtime、MCP 和 Skill 仍可完成实时采集与召回。
-
-`setup` 不会安装操作系统开机启动项。它会为当前登录会话启动后台 daemon；以后客户端启动
-VESTI MCP 时也会再次确认 daemon 已运行。
-
-当前安装器可自动写入 Codex、Claude Code、Kimi Code、Cursor、Qoder、WorkBuddy 和 Trae 的 Skill/MCP 配置，采集 runtime 默认检查这 7 类本地会话来源。Trae 当前只读取旧版可解析的 `state.vscdb`；新版加密 `ModularData/ai-agent/database.db` 不在支持范围内。
-
-完整的进程、数据路径、降级和安全边界见
-[无 App 记忆运行时说明](docs/standalone-memory-runtime.md)。
+[开始安装](#快速开始) · [首次使用与验收](#首次使用与验收) · [支持的客户端](#支持的客户端) · [工作原理](#工作原理)
 
 ## 快速开始
 
-要求 Node.js 22.12 或更高版本。
+当前使用源码安装。`@vesti/memory` 的 npm 发布方式暂不作为安装入口。
+准备好 Git、Node.js 22.12 或更高版本，以及 Corepack；仓库固定使用 pnpm 10.34.4。
 
-### npm 发布后的推荐安装方式
-
-> `@vesti/memory` 目前仍在本仓库中开发。下面是包发布到 npm 后的目标命令，
-> 不代表该包现在已经可以从 npm 下载；发布前请使用下一节的源码方式。
-
-```bash
-# 全局安装可为宿主配置保留一个稳定的 MCP 入口路径
-npm install -g @vesti/memory
-
-# 自动检测已安装的受支持客户端，安装 Skill、注册 MCP 并启动采集
-vesti setup
-
-# 查看客户端配置、数据库和采集 daemon 状态
-vesti status
-
-# 立即要求 daemon 扫描本地会话来源
-vesti sync
-
-# 检查 Node.js、Skill、MCP、数据库和 daemon 是否可用
-vesti doctor
-```
-
-也可以只配置一个客户端；`--host` 只决定写入哪个宿主的 Skill/MCP 配置，不改变 daemon 扫描的会话来源：
-
-```bash
-vesti setup --host codex
-vesti setup --host claude
-vesti setup --host kimi-code
-vesti setup --host cursor
-vesti setup --host qoder
-vesti setup --host workbuddy
-vesti setup --host trae
-```
-
-`setup` 可重复执行。它只新增或更新 VESTI 自己的配置项，保留其他 MCP 配置；修改已有配置前会创建备份。
-不要从一次性的 `npx` 缓存执行持久化 setup；缓存清理后，宿主配置中记录的入口路径会失效。
-配置完成后请重启或重新加载对应客户端，使新的 Skill 和 MCP 配置生效。
-
-### npm 发布前从源码运行
+### 从源码安装
 
 ```bash
 git clone --branch main --single-branch https://github.com/firefly-hefeng/VESTI-SKILLS.git
@@ -108,14 +50,23 @@ corepack pnpm install --frozen-lockfile
 corepack pnpm build
 
 node packages/vesti-memory/dist/cli.js setup
-node packages/vesti-memory/dist/cli.js status
-node packages/vesti-memory/dist/cli.js sync
-node packages/vesti-memory/dist/cli.js doctor
 ```
 
-仓库固定使用 pnpm 10.34.4。`main` 包含独立采集、MCP 和 Skill 的完整安装链路。源码发生变化后，请重新执行 `corepack pnpm build` 再运行 CLI。
+`setup` 会自动检测已有的受支持客户端，安装 Skill、注册 MCP，并启动后台采集。
+只想配置一个客户端时，可将最后一条命令改为：
+
+```bash
+node packages/vesti-memory/dist/cli.js setup --host codex
+```
+
+其他客户端的 `--host` 值见[支持的客户端](#支持的客户端)。这个参数只决定写入哪个客户端的配置，
+不限制后台采集的会话来源。
+
+`setup` 可重复执行，只新增或更新 VESTI 的配置项；修改已有配置前会创建备份，并保留其他 MCP 配置。
+完成后重启或重新加载对应客户端，再按下一节检查是否可用。
 
 安装器会把当前仓库中构建产物的绝对路径写入客户端配置，请把仓库放在长期保留的目录。移动目录或更新 Skill 后，重新运行 `setup`，再重启或重新加载客户端。
+源码更新后先重新执行 `corepack pnpm build`。不要用一次性的 `npx` 缓存路径保存长期配置。
 
 ### 让 Agent 安装配套环境
 
@@ -131,7 +82,50 @@ English version:
 Install VESTI following the README on the main branch of https://github.com/firefly-hefeng/VESTI-SKILLS. Clone into a permanent directory, check Node.js, install and build with the pinned pnpm version, then run setup for this client, status and doctor. Preserve other MCP settings and tell me whether a client restart is needed.
 ```
 
-### 只安装 Skill 的插件入口
+## 首次使用与验收
+
+### 1. 检查安装与采集状态
+
+在仓库根目录执行：
+
+```bash
+node packages/vesti-memory/dist/cli.js status
+node packages/vesti-memory/dist/cli.js sync
+node packages/vesti-memory/dist/cli.js doctor
+```
+
+检查以下结果：
+
+| 检查项 | 应看到什么 |
+| --- | --- |
+| 目标客户端 | `status` 中对应客户端显示 `Skill=ready, MCP=ready` |
+| 数据库 | `Database:` 后有实际路径，而不是 `missing` |
+| 采集服务 | 状态包含 `state: running`、`initialSyncComplete: true`（实际输出为 JSON） |
+| 安装诊断 | `doctor` 的检查项为 `PASS`，最后显示 `VESTI memory is ready.`，退出码为 0 |
+
+只需检查你打算使用的客户端；未安装、未配置的其他客户端显示 `missing` 不代表本次安装失败。
+`doctor` 至少要求一个客户端配置完整，不能替代逐个客户端的验收。
+采集服务就绪也不代表所有来源均无错误：还要检查同步结果和 `~/.vesti/logs/capture-daemon.log`。
+首次同步可能需要等待历史记录导入。
+
+### 2. 在客户端确认能够召回
+
+重启或重新加载客户端，确认它能看到 VESTI MCP 工具和 `vesti-memory` Skill。
+选一段你确实讨论过、且保存在受支持本地来源中的记录，把下面的主题替换成自己的内容：
+
+```text
+请使用 vesti-memory 查找我之前关于“登录模块”的讨论。
+告诉我当时确定了什么、涉及哪些文件，并给出原始会话来源。先不要修改文件。
+```
+
+在工具调用记录中确认客户端实际调用了 VESTI 的检索工具，再核对回答中的会话来源和内容。
+能够返回匹配的原始讨论，才说明这次历史召回验证通过；仅仅回答“已安装”不算。
+
+如果没有结果，先检查来源是否有可读记录、同步是否报错，再换用原讨论中的具体关键词。
+配置显示 `ready`，并不保证每个查询都一定命中。
+
+<details>
+<summary>已有 MCP 环境，只安装 Skill</summary>
 
 远程默认分支也提供插件清单。以下入口安装 Skill，不替代上面的独立采集服务和 MCP 安装；`vesti-handoff` 可独立使用，`vesti-memory` 需要配套 MCP 提供历史检索。
 
@@ -152,9 +146,18 @@ Install VESTI following the README on the main branch of https://github.com/fire
 
 其他客户端也可手动把 `skills/vesti-memory` 和 `skills/vesti-handoff` 复制到各自的用户级 Skill 目录，然后重新加载客户端。若已经通过 `setup` 安装 `vesti-memory`，无需再重复安装同一 Skill。
 
+</details>
+
 ## 支持的客户端
 
-`@vesti/memory` 会按每个客户端的真实格式注册同一个只读 stdio MCP，并安装配套 Skill：
+安装器支持 Codex、Claude Code、Kimi Code、Cursor、Qoder、WorkBuddy 和 Trae 系列，
+后台默认检查这 7 类本地会话来源。Trae 仅支持旧版可读的 `state.vscdb`，不支持新版加密的
+`ModularData/ai-agent/database.db`。
+
+下表命令是 CLI 子命令；源码安装时请在前面加上 `node packages/vesti-memory/dist/cli.js`。
+
+<details>
+<summary>查看各客户端的配置路径与命令</summary>
 
 | 客户端 | 用户级 Skill 位置 | 用户级 MCP 配置 | 单独配置命令 |
 |---|---|---|---|
@@ -173,6 +176,8 @@ Install VESTI following the README on the main branch of https://github.com/fire
 
 不带 `--host` 等同于 `--host all`：只配置在当前用户目录中检测到的客户端。即使未被自动检测，
 也可以通过显式 `--host` 完成配置。
+
+</details>
 
 ## 如何召回记忆
 
@@ -203,6 +208,31 @@ flowchart LR
 
 历史文件结果只表示“这个路径曾在会话中出现”，不保证文件目前仍存在。Skill 会在可访问项目时
 再读取磁盘上的当前文件；低置信度结果只作为线索，不会被表述成确定事实。
+
+## 工作原理
+
+后台采集服务读取受支持的本地会话记录，整理后写入同一份 SQLite 数据库。
+当前客户端读取 Skill 指令，根据任务调用 MCP 工具；MCP 查询数据库并把结果返回客户端。
+Skill 是调用规则，不是位于 MCP 和客户端之间的独立服务。
+
+```mermaid
+flowchart LR
+    A["本地会话记录"] --> B["后台采集服务"]
+    B -->|写入| C["本地 SQLite"]
+    E["vesti-memory Skill"] -.指导调用.-> F["当前客户端"]
+    F -->|调用工具| D["只读 MCP"]
+    D -->|查询| C
+    C -->|查询结果| D
+    D -->|返回历史上下文| F
+```
+
+采集服务会先导入已有记录，再通过文件监听或轮询获取变化，并定期补扫。
+每个目标数据库由一个独立后台进程串行写入；多个客户端可通过 MCP 读取它。
+Skill 规定何时检索、如何逐层深入，以及如何处理低置信度结果，本身不采集数据或直接读取数据库。
+
+`setup` 会为当前登录会话启动后台进程，不创建操作系统开机启动项；以后客户端启动 VESTI MCP 时，
+也会检查并按需拉起采集服务。完整的进程、来源差异与降级行为见
+[无 App 记忆运行时说明](docs/standalone-memory-runtime.md)。
 
 ## 包与 Skill
 
@@ -249,14 +279,11 @@ VESTI-SKILLS/
 - `VESTI_DB_PATH`：只覆盖 SQLite 数据库路径。
 - `VESTI_CAPTURE_DISABLED=1`：仅在明确需要查询静态数据库快照时禁用自动采集。
 
-## VESTI App
+## 可选集成
 
 [VESTI-APP](https://github.com/221250144/VESTI-APP) 提供可选的桌面浏览与管理体验。
-独立方案已经把实时采集和 MCP 从 App 生命周期中移出，因此：
-
-- 只安装本仓库的 runtime、MCP 和 Skill，也可以持续采集并跨客户端召回；
-- 安装 App 后可以查看同一份本地记忆，但无需为了保持采集而一直打开 App；在 App 的旧捕获器尚未改为复用 standalone daemon 前，不要让两套捕获器同时写同一个数据库；
-- MCP 查询保持只读，数据写入统一交给 capture runtime。
+本仓库的采集、MCP 和 Skill 不依赖 App。若要让 App 查看同一数据库，
+不要同时启用 App 的旧捕获器和独立采集服务写入该库。
 
 另有 [VESTI 浏览器扩展](https://github.com/221250144/VESTI)，用于导入网页端对话。
 

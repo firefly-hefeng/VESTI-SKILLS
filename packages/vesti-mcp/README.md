@@ -21,18 +21,24 @@ The package is ESM-only and requires Node.js 22.12 or newer. Starting
 `vesti-mcp` automatically starts or reconnects to the one standalone capture
 daemon for the target database. VESTI App is optional.
 
-For normal installation, use the combined setup package. It installs the
-Skill, registers this stdio server and starts capture:
+For normal installation, follow the [source installation guide](../../README.md#快速开始).
+The npm package is not the current installation entry. From the repository root,
+build the workspace and run the combined setup CLI to install the Skill,
+register this stdio server and start capture:
 
 ```bash
-npm install -g @vesti/memory
-vesti setup
+corepack pnpm install --frozen-lockfile
+corepack pnpm build
+node packages/vesti-memory/dist/cli.js setup
+node packages/vesti-memory/dist/cli.js status
+node packages/vesti-memory/dist/cli.js sync
+node packages/vesti-memory/dist/cli.js doctor
 ```
 
-If `@vesti/mcp` itself is installed globally, its `vesti-mcp` binary serves
-stdio and ensures live capture. Installing only `@vesti/memory` exposes the
-top-level `vesti` command; setup records the MCP dependency's absolute entry
-and does not require `vesti-mcp` to be on the user's PATH.
+Keep the checkout at a permanent path: setup records the MCP dependency's
+absolute entry and does not require `vesti-mcp` to be on the user's PATH.
+Reload the client, then follow [first-use verification](../../README.md#首次使用与验收)
+to check both the installation and an actual history lookup.
 
 `VESTI_HOME` controls the base layout for logs, Vault and default storage;
 `VESTI_DB_PATH` independently overrides the SQLite file. Set

@@ -13,17 +13,26 @@ the same local memory through MCP. The desktop app remains an optional UI.
 
 ## Quick start
 
-After the package is published:
+Use the [source installation guide](../../README.md#快速开始). From the repository
+root, install dependencies, build and run the generated CLI:
 
 ```bash
-npm install -g @vesti/memory
-vesti setup
-vesti status
-vesti sync
-vesti doctor
+corepack pnpm install --frozen-lockfile
+corepack pnpm build
+node packages/vesti-memory/dist/cli.js setup
+node packages/vesti-memory/dist/cli.js status
+node packages/vesti-memory/dist/cli.js sync
+node packages/vesti-memory/dist/cli.js doctor
 ```
 
-`setup` detects installed clients. To configure one host explicitly:
+The npm package is not the current installation entry. Keep the checkout at a
+permanent path and reload your client after setup. See
+[first-use verification](../../README.md#首次使用与验收) for expected status fields
+and a history lookup check.
+
+`setup` detects installed clients. The shorthand `vesti` used below means
+`node packages/vesti-memory/dist/cli.js` when working from source. To configure
+one host explicitly:
 
 ```bash
 vesti setup --host codex
@@ -42,15 +51,6 @@ vesti setup --host all --dry-run
 `--host` selects which client configuration is changed; it does not narrow
 the local conversation sources scanned by the capture daemon. Restart or reload
 the configured client after setup so it can discover the new Skill and MCP.
-
-When working from this source repository instead of a published package, build
-the workspace and invoke the generated CLI directly:
-
-```bash
-corepack pnpm install
-corepack pnpm build
-node packages/vesti-memory/dist/cli.js setup
-```
 
 ## What setup changes
 
