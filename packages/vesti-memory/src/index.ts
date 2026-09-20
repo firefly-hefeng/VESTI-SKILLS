@@ -2,6 +2,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promises as fs } from 'node:fs';
+import { LlmClient, loadLlmConfig } from '@vesti/mcp';
 
 import {
   inspectHost,
@@ -63,6 +64,8 @@ Usage:
   vesti status
   vesti sync [--dry-run]
   vesti doctor
+  vesti llm status
+  vesti llm test
 
 Commands:
   setup   Install the bundled vesti-memory Skill, register the stdio MCP,
@@ -182,7 +185,7 @@ function captureDbPath(context: ResolvedContext): string {
 
 function persistentMcpEnvironment(context: ResolvedContext): Record<string, string> | undefined {
   const environment: Record<string, string> = {};
-  for (const key of ['VESTI_HOME', 'VESTI_DB_PATH', 'VESTI_DATA_DIR', 'KIMI_CODE_HOME'] as const) {
+  for (const key of ['VESTI_HOME', 'VESTI_DB_PATH', 'VESTI_DATA_DIR', 'KIMI_CODE_HOME', 'VESTI_LLM_CONFIG'] as const) {
     const value = context.env[key]?.trim();
     if (value) environment[key] = path.resolve(value);
   }
@@ -394,6 +397,28 @@ async function commandDoctor(context: ResolvedContext): Promise<number> {
 
 export async function runCli(argv: string[], input: CliContext = {}): Promise<number> {
   const context = resolveContext(input);
+  if (argv[0] === 'llm') {
+    if (argv.length !== 2 || !['status', 'test'].includes(argv[1])) {
+      context.io.error('Usage: vesti llm status | vesti llm test');
+      return 2;
+    }
+    try {
+      const config = loadLlmConfig(context.env, context.homeDir);
+      if (!config) {
+        context.io.out('VESTI LLM is disabled. Configure ~/.vesti/config/llm.json or VESTI_LLM_BASE_URL and VESTI_LLM_MODEL.');
+        return argv[1] === 'test' ? 1 : 0;
+      }
+      context.io.out(JSON.stringify({ ...config, apiKey: config.apiKey ? '(configured)' : '(not configured)' }, null, 2));
+      if (argv[1] === 'test') {
+        await new LlmClient(config).complete('Reply with OK.', 'Connection test.');
+        context.io.out('PASS  Custom model API returned a text response.');
+      }
+      return 0;
+    } catch (error) {
+      context.io.error(error instanceof Error ? error.message : 'VESTI LLM check failed.');
+      return 1;
+    }
+  }
   let parsed: ParsedCli;
   try {
     parsed = parseCli(argv);

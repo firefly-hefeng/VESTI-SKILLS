@@ -28,6 +28,8 @@ export type {
 } from './projectContext.js';
 export { createVestiMcpServer, serveStdio } from './server.js';
 export type { VestiMcpServerOptions } from './server.js';
+export { LlmClient, loadLlmConfig } from './llm.js';
+export type { LlmConfig } from './llm.js';
 export {
   looksLikeInjectedContextPrefix,
   sanitizeCapturedText,

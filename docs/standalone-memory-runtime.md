@@ -223,7 +223,12 @@ MCP 暴露的当前工具覆盖：
 - 历史文件定位：`vesti_search_files`
 - 已存在长期记忆条目的搜索与读取：`vesti_memory_search`、`vesti_memory_get`
 
-`query_only` 是数据库层的写保护，不只是代码约定。MCP 工具只执行读取和 PRAGMA 查询，不会更新召回次数、生成摘要或补齐项目状态；这些写操作必须由兼容的写入管线承担。
+`query_only` 是数据库层的写保护，不只是代码约定。MCP 不会更新召回次数、持久化摘要或补齐项目状态；这些写操作必须由兼容的写入管线承担。
+
+配置自定义模型 API 后，MCP 额外提供 `vesti_summarize`：按需将已选定的历史轮次发送到
+OpenAI Chat Completions 兼容接口，返回生成总结及来源引用，不写入数据库。
+普通检索工具仍完全本地运行。配置方式及 `vesti llm status/test` 见 README 的“自定义模型 API”。
+该能力不等于后台摘要/embedding/项目 brief 生成管线；未配置时不暴露此工具。
 
 多个宿主可分别启动自己的 MCP stdio 子进程并同时读取同一个数据库。它们共享捕获结果，但 MCP 返回给某一宿主的内容不会通过 VESTI 自动转发给其他宿主；跨宿主复用发生在“共同查询同一份本地记忆”这一层。
 

@@ -36,6 +36,13 @@ VESTI 的独立捕获服务在本机持续采集你与各 AI coding agent 的历
 
 只知道项目名而不知道路径时可先使用 **`vesti_project_brief(project)`**；如果数据库中还没有 brief，则改用项目名调用 `vesti_search`。知道路径时优先使用 `vesti_get_project_context`。
 
+## 可选：自定义模型总结
+
+- MCP 配置了自定义模型 API 时会额外提供 **`vesti_summarize(session_id, turn_ids, question?)`**；未提供时继续由当前 Agent 读取原文并总结。
+- 先按 search → timeline 定位，再传入 1–20 个明确的轮次序号。该工具会将选定历史发送到用户配置的模型 API，返回生成的总结和 `source` 引用，不修改数据库。
+- 只在需要总结选定历史时调用；不要把所有查询自动转发给模型。总结不是原始证据，关键事实仍用 `vesti_get_turns` 核对；`source.truncated=true` 时缩小轮次范围。
+- API 地址和 Key 由本地配置或进程环境管理，不要将 Key 放进工具参数。
+
 ## 交接前
 
 - **vesti_get_handoff_context(path | session_id, user_messages=8)** — 轻量交接材料，与 relay v2 对齐：项目上下文块 + 最近 N 条用户消息 + **文件锚点**（确定性活跃文件时间线）+ **verify_first 种子**（待确认的未决问题、上次失败的步骤复查）。全部来自存储数据，无编造。

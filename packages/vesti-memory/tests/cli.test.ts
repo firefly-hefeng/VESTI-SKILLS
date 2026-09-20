@@ -56,6 +56,27 @@ afterEach(async () => {
   await fs.rm(homeDir, { recursive: true, force: true });
 });
 
+describe('custom model diagnostics', () => {
+  it('reports optional configuration without exposing the API key or starting capture', async () => {
+    const code = await runCli(['llm', 'status'], {
+      homeDir, io, runtime,
+      env: { VESTI_LLM_BASE_URL: 'http://localhost:1234/v1', VESTI_LLM_MODEL: 'local', VESTI_LLM_API_KEY: 'private-test-key' },
+    });
+    expect(code).toBe(0);
+    expect(output.join('\n')).toContain('(configured)');
+    expect(output.join('\n')).not.toContain('private-test-key');
+    expect(ensureCalls).toBe(0);
+  });
+
+  it('returns actionable failure for missing test config and rejects unknown operations', async () => {
+    expect(await runCli(['llm', 'test'], { homeDir, io })).toBe(1);
+    expect(output.join('\n')).toContain('disabled');
+    expect(await runCli(['llm', 'unknown'], { homeDir, io })).toBe(2);
+    expect(await runCli(['llm', 'status'], { homeDir, io, env: { VESTI_LLM_MODEL: 'incomplete' } })).toBe(1);
+    expect(errors.join('\n')).toContain('baseUrl and model');
+  });
+});
+
 describe('setup dry-run', () => {
   it('selects only detected hosts for --host all and performs no writes or daemon start', async () => {
     await fs.mkdir(path.join(homeDir, '.codex'), { recursive: true });

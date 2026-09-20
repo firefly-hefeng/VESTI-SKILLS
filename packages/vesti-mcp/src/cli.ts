@@ -4,6 +4,7 @@ import { ensureCaptureDaemon } from '@vesti/capture-runtime/client';
 
 import { openVestiDb, resolveDbPath, VestiDbNotFoundError } from './db.js';
 import { serveStdio } from './server.js';
+import { LlmClient, loadLlmConfig } from './llm.js';
 
 type CaptureMode = 'live' | 'stale' | 'disabled';
 
@@ -39,6 +40,14 @@ async function prepareCapture(dbPath: string, env: NodeJS.ProcessEnv): Promise<C
 }
 
 async function main(): Promise<void> {
+  // Invalid optional configuration must not take local memory offline.
+  let llm: LlmClient | undefined;
+  try {
+    const config = loadLlmConfig();
+    if (config) llm = new LlmClient(config);
+  } catch (error) {
+    console.error(`vesti-mcp: custom model disabled: ${error instanceof Error ? error.message : 'invalid configuration'}`);
+  }
   const dbPath = resolveDbPath(process.env);
   const captureMode = await prepareCapture(dbPath, process.env);
   let db;
@@ -51,7 +60,7 @@ async function main(): Promise<void> {
     }
     throw error;
   }
-  await serveStdio(db);
+  await serveStdio(db, { llm });
   console.error(`vesti-mcp: serving ${dbPath} (read-only, capture=${captureMode}) on stdio`);
 }
 

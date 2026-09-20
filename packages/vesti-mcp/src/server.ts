@@ -10,6 +10,8 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import type { FileSearchTrace, SearchFilesArgs } from '@vesti/search-files-core';
 
 import type { VestiDatabase } from './db.js';
+import type { LlmClient } from './llm.js';
+import { vestiSummarize, type SummarizeArgs } from './summarize.js';
 import { vestiSearchFiles } from './files.js';
 import { vestiMemoryGet, vestiMemorySearch } from './memory.js';
 import { vestiGetHandoffContext, vestiGetProjectContext } from './projectContext.js';
@@ -99,6 +101,8 @@ const READ_ONLY_TOOL_ANNOTATIONS = {
 } as const;
 
 export interface VestiMcpServerOptions {
+  /** Optional configured provider. Without this, all tools remain local. */
+  llm?: LlmClient;
   /**
    * Process-local instruction override used by controlled evaluations.
    * It is never exposed as an MCP tool argument and production callers keep
@@ -114,11 +118,26 @@ export interface VestiMcpServerOptions {
 export function createVestiMcpServer(db: VestiDatabase, options: VestiMcpServerOptions = {}): Server {
   const server = new Server(
     { name: 'vesti-mcp', version: '0.1.0' },
-    { capabilities: { tools: {} }, instructions: options.serverInstructions ?? SERVER_INSTRUCTIONS },
+    { capabilities: { tools: {} }, instructions: options.serverInstructions ?? (SERVER_INSTRUCTIONS + (options.llm
+      ? '\nOPTIONAL MODEL SUMMARY: after vesti_timeline selects relevant turns, vesti_summarize sends only those turns to the configured model API and returns a generated summary with source references. Verify claims against vesti_get_turns.' : '')) },
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
+      ...(options.llm ? [{
+        name: 'vesti_summarize',
+        description: 'Summarize selected historical turns using the configured custom model API. First use vesti_search and vesti_timeline to select evidence. Sends the selected captured content to that API; returns generated text and source turn references, without writing to the database.',
+        annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+        inputSchema: {
+          type: 'object' as const, additionalProperties: false,
+          properties: {
+            session_id: { type: 'string', description: 'Session id from vesti_search.' },
+            turn_ids: { type: 'array', items: { type: 'integer', minimum: 0 }, minItems: 1, maxItems: 20, description: 'Turn sequence numbers selected using vesti_timeline.' },
+            question: { type: 'string', maxLength: 2000, description: 'Optional focus or question for the summary.' },
+          },
+          required: ['session_id', 'turn_ids'],
+        },
+      }] : []),
       {
         name: 'vesti_get_project_context',
         description: PROJECT_CONTEXT_DESCRIPTION,
@@ -349,11 +368,15 @@ export function createVestiMcpServer(db: VestiDatabase, options: VestiMcpServerO
     ],
   }));
 
-  server.setRequestHandler(CallToolRequestSchema, async request => {
+  server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
     const { name, arguments: args } = request.params;
     try {
       let payload: unknown;
       switch (name) {
+        case 'vesti_summarize':
+          if (!options.llm) throw new Error('Custom model API is not configured.');
+          payload = await vestiSummarize(db, options.llm, (args ?? {}) as unknown as SummarizeArgs, extra.signal);
+          break;
         case 'vesti_get_project_context':
           payload = vestiGetProjectContext(db, (args ?? {}) as Parameters<typeof vestiGetProjectContext>[1]);
           break;
@@ -414,8 +437,8 @@ export function createVestiMcpServer(db: VestiDatabase, options: VestiMcpServerO
 }
 
 /** Connect the server to stdio; resolves once the transport is up. */
-export async function serveStdio(db: VestiDatabase): Promise<Server> {
-  const server = createVestiMcpServer(db);
+export async function serveStdio(db: VestiDatabase, options: VestiMcpServerOptions = {}): Promise<Server> {
+  const server = createVestiMcpServer(db, options);
   const transport = new StdioServerTransport();
   await server.connect(transport);
   return server;

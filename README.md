@@ -84,6 +84,63 @@ Install VESTI following the README on the main branch of https://github.com/fire
 
 ## 首次使用与验收
 
+### 可选：自定义模型 API
+
+独立 MCP 支持 OpenAI Chat Completions 兼容接口。未配置时仍只使用本地检索；配置后增加
+`vesti_summarize`，将通过 `vesti_timeline` 选定的历史轮次发送给模型，总结结果带回来源轮次。
+该工具按需调用，不写入数据库，也不会自动批量生成摘要、embedding 或项目简报。
+
+在 `~/.vesti/config/llm.json` 中填写（示例中的地址、模型、Key 需替换）：
+
+```json
+{
+  "baseUrl": "https://your-provider.example/v1",
+  "apiKey": "your-api-key",
+  "model": "your-model",
+  "timeoutMs": 30000,
+  "maxTokens": 1500
+}
+```
+
+`baseUrl` 是接口前缀，程序追加 `/chat/completions`，不要填写完整的 chat endpoint。
+支持 HTTP 本地模型服务；无需鉴权时可省略 `apiKey`。仅支持上述兼容协议，不直接支持
+Anthropic Messages、Responses 或任意自定义请求格式。
+
+默认配置目录随 `VESTI_HOME` / `VESTI_DATA_DIR` 变化，也可通过 `VESTI_LLM_CONFIG` 指定 JSON 文件。
+模型配置可由 MCP 进程环境变量覆盖：`VESTI_LLM_BASE_URL`、`VESTI_LLM_API_KEY`、
+`VESTI_LLM_MODEL`、`VESTI_LLM_TIMEOUT_MS`、`VESTI_LLM_MAX_TOKENS`。
+设置 `VESTI_LLM_ENABLED=false` 或在文件中设置 `"enabled": false` 可禁用。
+配置文件中的 Key 为明文；可省略它，改由 MCP 进程环境提供 `VESTI_LLM_API_KEY`。
+`setup` 不会把当前终端里的模型 Key 复制到各客户端配置中。
+
+构建后检查配置和连接（`test` 会发送一条简短测试请求，不发送历史）：
+
+```bash
+node packages/vesti-memory/dist/cli.js llm status
+node packages/vesti-memory/dist/cli.js llm test
+```
+
+`status` 不联网且隐藏 Key。更改配置后重启 MCP/对应客户端。
+如果此前安装指向另一份仓库，需要在本仓库构建后重新执行 `setup` 才会使用这份实现。
+配置无效时 MCP 会在 stderr 报告原因，并继续提供原有本地工具。
+
+使用时让 Agent 先搜索并定位轮次，再调用：
+
+```json
+{
+  "name": "vesti_summarize",
+  "arguments": {
+    "session_id": "从 vesti_search 获取的会话 ID",
+    "turn_ids": [1, 3],
+    "question": "总结这几轮确定的方案和未解决的问题"
+  }
+}
+```
+
+最多选择 20 个轮次，历史正文受字符预算限制；返回的 `source.truncated` 标记截断。
+模型总结是生成内容，应根据 `source.session_id`、`source.turn_ids` 回查原文确认。
+只有显式调用该工具才会发送所选历史到配置的 API，普通检索工具不会调用模型。
+
 ### 1. 检查安装与采集状态
 
 在仓库根目录执行：
